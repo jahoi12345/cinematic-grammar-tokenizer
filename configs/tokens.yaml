@@ -1,0 +1,41 @@
+# Derived token vocabulary of the row. Attribute vocabularies stay in configs/schema.yaml (single source); this file only defines what the
+# tokenizer derives from them. v1 = the row WITHOUT the style slot.
+version: v1
+slots: [size, lens, angle, framing, light, comp, key, DoF, people, sound, len, palette, move]
+aggregation:
+  # a recorded decision item 1, declared before any labels exist: primary label = argmax of the MEAN OF PROBABILITIES over the three keyframes
+  method: soft_vote_mean_probability
+  keyframes: [kf_start, kf_mid, kf_end]
+  attributes: [size, lens, angle, framing, light_type, light_cond, composition]
+  reference_columns_kept: kf_mid
+len_bins:            # fixed log bins in seconds, comparable across films (item 11); lower edge inclusive
+  edges: [1, 2, 4, 8, 16, 32]
+  names: ["<1", "1-2", "2-4", "4-8", "8-16", "16-32", "32+"]
+people:
+  max: 4             # counts >= max display as "4+"; the raw count stays in the table (item 4)
+sound:
+  values: [score, dialogue, ambient, silence]
+  status: provisional   # item 2: a 20-shot listening check decides per film
+angle:
+  from_schema: true
+  reserved_extra: [eye]   # item 8: reserved in the TOKENIZER vocabulary only; never in schema.yaml or any model prompt; not emitted in v1
+move:
+  atoms_from_schema: true  # the 16 direction-bearing classes of schema.attributes.move are the atoms; unordered set; `static` alone for no movement; never empty (item 6)
+  source: data/processed/<film>_move.parquet   # Phase 4 geometry model predictions (move_atoms, ' + '-joined, schema order); accuracy on our films is UNMEASURED
+  display: atoms_joined_with_plus              # e.g. pan-left+push-in; `static` alone for a shot without movement
+  absent_value: n/a                            # shown only when the film has no movement table; a shot missing from a present table shows ?
+palette:
+  kind: global
+  k: 32
+  source: shotqa_film_split_train_stills   # item 7; never NOTLD or the owned film
+  centroids: data/cache/tokens/palette_global_k32.npz   # ShotQA-derived: local only, never committed
+  id_prefix: g
+  per_film_column: palette_film   # the v0 per-film clustering stays as a table column
+facing: {slot: false}            # table column only (item 3)
+light_direction: {slot: false}   # table column only (item 3)
+confidence_token: false          # item 10: no confidence / disagreement token; `*` is display-only
+tracking_rack: not_predicted     # item 5
+style:
+  enabled: false                 # item 12/13: enters the row only if the numeric bars and the human check pass
+  levels: 3
+  codes_per_level: 256

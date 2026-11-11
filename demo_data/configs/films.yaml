@@ -1,0 +1,14 @@
+# Film registry. public_domain=true is required for anything published (demo, repo figures).
+# Owned films stay local under data/raw/films/<id>/ and are never committed.
+films:
+  - id: night_of_the_living_dead
+    title: Night of the Living Dead
+    director: George A. Romero
+    year: 1968
+    public_domain: true
+    path: data/raw/films/night_of_the_living_dead/film.mp4
+    subtitles: data/raw/films/night_of_the_living_dead/film.srt
+    source: Internet Archive
+    cut_threshold: 12   # decisions/0005 (47/50 real cuts hand-checked)
+  # - his_girl_friday (Hawks, 1940), nosferatu (Murnau, 1922), detour (Ulmer, 1945)
+  # No fixed film count. Add films as the analyses need them.

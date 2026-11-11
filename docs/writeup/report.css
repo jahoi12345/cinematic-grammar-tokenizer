@@ -1,0 +1,68 @@
+/* Cinematic Grammar Tokenizer Project Report: layout of the user's Quarto report, white background, Times New Roman. */
+:root {
+  --report-text: #212529;
+  --report-muted: #555555;
+  --report-rule: #d9d9d9;
+}
+
+html, body {
+  background: #ffffff;
+  color: var(--report-text);
+}
+
+body,
+.quarto-title-block,
+h1, h2, h3, h4, h5, h6,
+.title, .subtitle,
+#TOC, #toc-title, .sidebar nav[role="doc-toc"] ul > li > a,
+.abstract, .block-title,
+.quarto-title-meta, .quarto-title-meta-heading, .quarto-title-meta-contents,
+table, caption, figcaption, .figure-caption, .table-caption {
+  font-family: "Times New Roman", Times, serif;
+}
+
+h1.title {
+  font-weight: 600;
+}
+
+h3.anchored {
+  font-weight: 600;
+}
+
+h4.anchored {
+  font-weight: 500;
+}
+
+/* tables: compact, striped, left-aligned, like the pandas tables of the reference report */
+main.content table {
+  font-size: 0.875em;
+}
+main.content table th,
+main.content table td {
+  text-align: left !important;
+  padding: 0.3rem 0.5rem;
+  vertical-align: top;
+}
+main.content table thead th {
+  border-bottom: 1px solid #8c8c8c;
+}
+main.content table tbody tr:nth-of-type(odd) > * {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+figcaption, .figure-caption, caption, .table-caption {
+  color: var(--report-muted);
+  font-size: 0.95rem;
+}
+
+.quarto-figure img {
+  border: 1px solid var(--report-rule);
+}
+
+@media print {
+  #quarto-margin-sidebar, #TOC, .sidebar { display: none !important; }
+  body { font-size: 11.5pt; }
+  main.content { max-width: none !important; }
+  .quarto-figure, table { break-inside: avoid; }
+  h2, h3, h4 { break-after: avoid; }
+}

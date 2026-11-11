@@ -1,0 +1,9 @@
+# Hosted demo only (streamlit_app.py). The full pipeline uses pyproject.toml / uv.lock instead.
+streamlit==1.64.0
+pandas==3.0.6
+pyarrow==25.0.1
+altair==6.3.0
+numpy==2.5.3
+PyYAML==6.0.3
+scikit-learn==1.9.1
+Pillow==12.3.0

@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+.DS_Store
+# pipeline outputs and downloaded models stay local (root folders only: demo_data/ ships)
+/data/
+/models/

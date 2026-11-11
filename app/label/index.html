@@ -1,0 +1,52 @@
+<!doctype html><meta charset=utf-8><title>Label</title>
+<style>body{background:#111;color:#eee;font:16px system-ui;margin:0;padding:12px}img{width:32%;border:1px solid #444}
+#imgs.cut img{width:96%}.bar{height:6px;background:#333}.bar div{height:6px;background:#4c8}
+.opt{display:inline-block;margin:4px 8px 4px 0;padding:6px 12px;border:1px solid #666;border-radius:6px;font-size:20px}
+.chip{display:inline-block;margin-right:10px;padding:2px 8px;background:#246;border-radius:10px}small{color:#999}</style>
+<div class=bar><div id=prog></div></div><p id=head></p><div id=imgs></div><div id=vid></div><h2 id=prompt></h2><div id=opts></div><p id=chips></p>
+<p><small id=help></small></p>
+<script>
+let S,i=0,fi=0,cur={},V=null,rate=0.5;
+const $=id=>document.getElementById(id);
+async function init(){S=await (await fetch('/api/state')).json();
+ i=S.items.findIndex(x=>!(x.id in S.labels)); if(i<0)i=S.items.length; render();}
+function showVideo(it){ // loops t-2s .. t+2s; the cut is at the 2 s mark
+ const a=Math.max(it.t-2,0),b=it.t+2; $('vid').innerHTML=`<video id=v src="/video?film=${it.film}" width=640 muted controls></video>`;
+ V=$('v'); V.addEventListener('loadedmetadata',()=>{V.currentTime=a;V.playbackRate=rate;V.play().catch(()=>{})});
+ V.addEventListener('timeupdate',()=>{if(V.currentTime>b||V.currentTime<a-0.5){V.currentTime=a}});
+ V.dataset.a=a;}
+function nextField(){ // skip facing/light_dir when nobody is visible
+ while(fi<S.fields.length && ['facing','light_dir'].includes(S.fields[fi][0]) && cur.people==='0'){cur[S.fields[fi][0]]='none';fi++}}
+function render(){
+ const done=Object.keys(S.labels).length; $('prog').style.width=100*done/S.items.length+'%';
+ if(i>=S.items.length){$('head').textContent='All done. You can close this tab.';$('imgs').innerHTML=$('opts').innerHTML=$('prompt').textContent=$('chips').innerHTML='';return}
+ const it=S.items[i]; $('head').textContent=`${done}/${S.items.length} labeled  ·  item ${i+1}`;
+ if(S.mode==='cuts'){$('imgs').className='cut';showVideo(it);$('imgs').innerHTML=`<img src="/cut?film=${it.film}&t=${it.t}">`;
+  $('prompt').textContent='Is there a real cut between LEFT and RIGHT?';
+  $('opts').innerHTML='<span class=opt>Y = real cut</span><span class=opt>N = false cut (same shot)</span><span class=opt>? = unsure</span>';
+  $('chips').innerHTML='';$('help').textContent='Y / N / ? = answer · Space = pause · R = replay · S = speed (0.25/0.5/1x) · ←/→ = step 1 frame while paused · Backspace = previous';const nx=S.items[i+1];if(nx)new Image().src=`/cut?film=${nx.film}&t=${nx.t}`;return}
+ $('vid').innerHTML='';V=null;$('imgs').className='';$('imgs').innerHTML=it.imgs.map(p=>`<img src="/img?p=${encodeURIComponent(p)}">`).join('');
+ nextField();
+ if(fi>=S.fields.length){save();return}
+ const f=S.fields[fi]; $('prompt').textContent=f[1];
+ $('opts').innerHTML=f[2].map((v,k)=>`<span class=opt>${f[0]==='people'?v:k+1} = ${v}</span>`).join('')+'<span class=opt>? = unsure</span>';
+ $('chips').innerHTML=Object.entries(cur).map(([k,v])=>`<span class=chip>${k}: ${v}</span>`).join('');
+ $('help').textContent='Number key = pick · ? = unsure · Backspace = undo last answer · each shot auto-saves after its last question';}
+function save(label){const it=S.items[i];label=label||cur;S.labels[it.id]=label;cur={};fi=0;i++;render();
+ fetch('/api/label',{method:'POST',body:JSON.stringify({id:it.id,label})});}
+document.addEventListener('keydown',e=>{ if(!S||i>=S.items.length)return;
+ if(V&&S.mode==='cuts'){const k=e.key;
+  if(k===' '){e.preventDefault();V.paused?V.play():V.pause();return}
+  if(k.toLowerCase()==='r'){V.currentTime=+V.dataset.a;V.play();return}
+  if(k.toLowerCase()==='s'){rate=rate===0.5?0.25:rate===0.25?1:0.5;V.playbackRate=rate;return}
+  if(k==='ArrowLeft'){V.pause();V.currentTime-=1/24;return} if(k==='ArrowRight'){V.pause();V.currentTime+=1/24;return}}
+ if(e.key==='Backspace'){ if(S.mode==='cuts'){if(i>0){i--;delete S.labels[S.items[i].id];render()}return}
+  if(fi>0){fi--;delete cur[S.fields[fi][0]];while(fi>0&&cur[S.fields[fi][0]]==='none'){fi--;delete cur[S.fields[fi][0]]}render()}
+  else if(i>0){i--;cur={};fi=0;delete S.labels[S.items[i].id];render()} return}
+ if(S.mode==='cuts'){const k=e.key.toLowerCase();const m={y:'real',n:'false','?':'unsure'}; if(m[k])save(m[k]);return}
+ const f=S.fields[fi]; if(!f)return;
+ if(e.key==='?'){cur[f[0]]=null;fi++;render();return}
+ if(f[0]==='people'){if(/^[0-4]$/.test(e.key)){cur.people=e.key;fi++;render()}return}
+ const n=parseInt(e.key); if(n>=1&&n<=f[2].length){cur[f[0]]=f[2][n-1];fi++;render()}});
+init();
+</script>

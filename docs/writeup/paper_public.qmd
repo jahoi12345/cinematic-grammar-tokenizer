@@ -1,0 +1,590 @@
+---
+title: "Cinematic Grammar Tokenizer Project Report"
+subtitle: "Independent Project, Fall 2026"
+author: "James Li"
+date: "October 28, 2026"
+abstract: |
+  This project asks whether a feature film can be turned automatically into one readable line of descriptive tokens per shot, a "token row" that records shot size, lens, camera angle, framing, lighting, composition, tonal key, depth of field, people, sound, shot length, colour palette and camera movement. I built a pipeline that detects shots, extracts three keyframes per shot, labels static attributes with a vision-language model fine-tuned on the public ShotQA question set (since October 22 a four-billion-parameter Qwen3-VL-4B adapter, which replaced an earlier two-billion-parameter one), labels camera movement with a model built on optical-flow and depth features, and fills the remaining slots with pretrained detectors and rules. I study three questions. First, whether a film can become reliable shot tokens: on *Night of the Living Dead* (1968), a public-domain black-and-white film, the pipeline produced 1,077 shots, 47 of 50 hand-checked cuts were real, and every key run reproduced byte for byte. Second, how accurate the static labels are: on ShotBench, a held-out four-option benchmark, the earlier 2B model answered 73.2% of 3,108 static questions correctly, and the 4B now used on the film scores 82.49% against the 2B's 81.16% on film-held-out validation and about two points higher than the 2B on ShotBench under the same scoring. Under the benchmark's official prompt and answer parser the seven-attribute mean was 73.3% for the 2B and 74.7% for the 4B, both above the published ShotVL-3B and GPT-4o numbers by a rule fixed before the runs; these are comparisons with published numbers, not reruns, the training and test sets share films, the benchmark had been looked at before, and my runs used a different inference engine (section 6b lists every caveat). Third, whether it can tell camera movement: the geometry model scored 74.6% on ShotBench's movement questions and 62.6% on generated CameraBench questions, and a pre-registered claim that combining it with a video model helps was not supported. Accuracy on the film itself remains unmeasured until my own label sets are labelled.
+format:
+  html:
+    toc: true
+    toc-title: Contents
+    toc-location: right
+    toc-depth: 4
+    embed-resources: true
+    theme: default
+    css: report.css
+    fig-cap-location: bottom
+    tbl-cap-location: top
+lang: en
+---
+
+## 1) Inspiration
+
+When film is taught, a shot is rarely described in free prose. Teachers, students and critics use a compact, shared vocabulary: the size of the subject in the frame (close-up, medium shot, wide shot), the position of the camera (low angle, high angle), how the camera moves (pan, tilt, push-in), the quality of the light (hard or soft, high-key or low-key) and how long the shot is held. These terms are what make it possible to say that a sequence "tightens" as it approaches its high point, or that a director favours long, static wide shots. They are also slow to produce. Describing a feature film shot by shot by hand means stopping on every cut; *Night of the Living Dead* (1968) alone contains 1,077 shots at the cut setting I eventually used [1].
+
+I wanted a tool that would do the first pass of this work automatically and write the result in the same vocabulary a film student would use. The idea of the project is a **token row**: one readable line per shot, with fixed slots in a fixed order, each slot drawing from a fixed vocabulary [2]. Because every row has the same shape, the rows of a whole film can be searched ("every low-angle close-up"), counted ("how much of the film is in close shots") and compared over time ("does the cutting speed up in the last act") without rewatching the film. The version I built, called v1, has thirteen slots and no learned "style" slot [3]. @tbl-slots lists them and the source of each value.
+
+| slot | what it records | source of the value |
+|---|---|---|
+| size | shot size, from extreme close-up (ECU) to extreme wide shot (EWS) | fine-tuned vision-language model |
+| lens | apparent focal length (ultra-wide to long) | fine-tuned vision-language model |
+| angle | camera angle (low, high, overhead, dutch, ...) | fine-tuned vision-language model |
+| framing | single, two-shot, group, over-the-shoulder, insert, ... | fine-tuned vision-language model |
+| light | light type and condition (e.g. daylight / hard) | fine-tuned vision-language model |
+| comp | composition (centre, left-heavy, balanced, ...) | fine-tuned vision-language model |
+| key | low-, mid- or high-key, from the luminance histogram | rule |
+| DoF | depth of field, from a depth model and a blur ratio | pretrained model and rule |
+| people | number of people detected, capped at "4+" | pretrained detector |
+| sound | dialogue, score, ambient or silence | pretrained audio classifier and grouping rule |
+| len | shot length in one of seven bins | rule |
+| palette | nearest of 32 global colour clusters | rule (palette fitted on ShotQA stills) |
+| move | set of camera-movement "atoms" (pan-left, push-in, static, ...) | geometry movement model |
+
+: The thirteen slots of the v1 token row, in their fixed order, and where each value comes from [3, 4, 5]. {#tbl-slots}
+
+@fig-anatomy shows one real row from *Night of the Living Dead*, with each slot labelled as a model prediction or a heuristic. A star marks a value on which the shot's three keyframes disagree; a question mark marks a missing value [6].
+
+![One real token row of *Night of the Living Dead* (shot 538, the median-position row of a deterministic sample), with each of its 13 slots labelled as a model prediction or a heuristic. A star marks a value on which the three keyframes disagree. The row was chosen by position, not by content, and its values are not checked against human labels [6].](figures/night_of_the_living_dead_fig4_token_row_anatomy.png){#fig-anatomy}
+
+The project is also a test of discipline. Public benchmarks for film understanding exist, and it is easy to tune a model against a test set until the numbers look good. From the start I treated the benchmarks as single-use: every evaluation was written down before it was run, sealed behind an evaluator that refuses uncommitted code, and logged in a ledger [7]. Each change was checked by a separate verification pass that did not write it. I consider this part of the result: the numbers in this report are fewer than they could have been, but each of them was produced once, by a rule fixed in advance.
+
+Finally, I chose to be explicit about what the tool cannot yet do. The token rows are predictions. Until my own label sets are labelled, I cannot say how often any slot is right on the film I ran it on, and I say so wherever a number might suggest otherwise.
+
+## 2) Problem Statements
+
+This project explores three research questions about turning films into shot tokens:
+
+1. **Can a film become reliable shot tokens?** Does the pipeline segment a film into shots that are mostly real, fill every slot of every row, reproduce its own output exactly, and run unchanged on footage it was not built around? "Reliable" here means dependable as a process: correct cuts, complete rows, identical results on a re-run, and sensible behaviour on new input. It does not mean that every slot is correct.
+
+2. **How accurate are the static labels?** How often does the fine-tuned model choose the right shot size, framing, camera angle, lens, lighting type, lighting condition and composition on a held-out benchmark, how much of that accuracy comes from the image itself, and what can and cannot be inferred about its accuracy on a 1968 black-and-white film that looks nothing like the benchmark?
+
+3. **Can it tell camera movement?** Can a model built on optical flow and depth recognise pans, tilts, push-ins and static shots on held-out benchmarks, does combining it with a video-language model help as I predicted before the test, and does the model behave consistently when the same shot is reversed or mirrored?
+
+Each question has a part that the available data can answer (benchmark accuracy, reproducibility, behaviour checks) and a part it cannot (accuracy on my own film, which requires labels I do not yet have). The analysis in section 6 keeps these two parts separate.
+
+## 3) Data
+
+The project uses one public-domain film as its case study, one public training set and two public test sets.
+
+- ***Night of the Living Dead* (1968), public domain.** A clean file of 5,731.8 seconds that decodes end to end without errors [8]. It is the film behind every figure in this report.
+- **ShotQA (training only).** About 70,000 question-answer pairs about film stills and clips [2]. Every model in the project was trained on ShotQA and nothing else. For still images I split it by film: 71 of 706 films (5,120 images) were held out for validation and 44,597 images were used for training, with no film on both sides [9]. For camera movement I used 1,058 clips from 129 source videos and held out 19 sources [7]. ShotQA is licensed CC-BY-NC-ND, so nothing trained on it (model adapters, classifier heads, the global colour palette) is committed or redistributed [7, 10].
+- **ShotBench (test only).** 3,572 questions (3,049 images and 464 videos) in a single test split, never used for training or tuning [11]. I use its 3,108 static four-option questions [12] and its 464 camera-movement questions [13].
+- **CameraBench (test only).** The public test set of 1,071 GIF clips, whose bytes were independently verified after download [7]. Instead of its native protocol I generated four-option questions with an algorithm fixed before the test; 934 questions remained after 137 clips without a mapped movement label were dropped [13].
+
+**The single-use ledger.** Every finished model is evaluated on a test set once, and every evaluation writes a line to a ledger. The ShotBench still-image ledger has six entries: two probes of an early model (Phase 3A), the first main static model (Phase 3B, 2B), one further sealed evaluation of that same frozen model under a different scoring protocol, and two sealed evaluations of the 4B model that replaced it, one under that other protocol and one with letter-logit scoring [14].
+The two evaluations under the other protocol, ShotBench's official prompt and answer parser, are reported in section 6b with all of their caveats. Six looks at the same questions weaken every later number a little.
+The camera-movement ledger has six lines: three models times two test sets [15].
+
+**My own label sets.** A 300-shot gold set (for final reporting only) and a development set of about 100 shots (for tuning thresholds) are committed as shot lists, but neither has been labelled yet [2, 7]. A plan to label 60 shots of the gold set myself (shot size, camera angle and movement) was cancelled, so no gold labels were made [16]. Accuracy on my own film therefore remains unmeasured, and no accuracy figure in this report refers to my film.
+
+| data | size | role | allowed use |
+|---|---|---|---|
+| *Night of the Living Dead* (1968) | 5,731.8 s, 1,077 shots | case study | inference; results publishable |
+| ShotQA | ~70k QA; 44,597 training images; 1,058 movement clips | training and validation | training only; not redistributable |
+| ShotBench | 3,108 static and 464 movement questions | held-out test | one evaluation per model and protocol |
+| CameraBench public test | 1,071 clips, 934 generated questions | held-out test | one evaluation per model |
+| dev / gold shot lists | ~100 / 300 shots | threshold tuning / final reporting | not yet labelled |
+
+: The data used in this project and how each set may be used [1, 2, 7, 8, 9, 11, 12, 13]. {#tbl-data}
+
+An early plan to cover ten films by three or more directors was removed [17], and with it a planned "director fingerprint" analysis [18]. The project therefore studies one film in depth rather than many in breadth.
+
+## 4) Stakeholders
+
+Four groups would use shot tokens, and each would use them differently.
+
+**Film students and teachers.** For students the token row is a vocabulary exercise in reverse: a film is already annotated in the terms they are learning, and they can check those annotations against their own eyes. Teachers can pull every low-angle shot or every close-up of a sequence in seconds to illustrate a lecture, or show how the cutting rhythm of a film changes from one act to the next. What they must not assume is that the tokens are correct; they are a starting point for discussion, and a wrong token can be as instructive as a right one.
+
+**Editors and filmmakers.** For practitioners the useful outputs are rhythm and coverage: shot lengths over time, how often a scene returns to close shots, which shots resemble which. A searchable index of a reference film ("show me the push-ins") can speed up the study of how another filmmaker solved a problem. These users care most about the segmentation and the movement slot, which are also the parts with the clearest known weaknesses.
+
+**Film scholars and archivists.** Scholars work with large collections and long time spans. Token rows offer a way to describe many films with one consistent vocabulary and to measure tendencies (more close shots, faster cutting) rather than asserting them. Archivists could use rows as metadata for catalogues of public-domain holdings. Both groups need to know exactly how each number was produced, which is why the report traces every figure to a committed source and keeps predictions apart from measurements.
+
+**Machine-learning and computer-vision researchers.** For researchers the project is a case study in evaluating film-understanding models honestly: a small model fine-tuned on a public training set, evaluated once per model on public test sets, with overlap between training and test films measured and disclosed. They will be most interested in the benchmark numbers, the controls (grey images, time-reversed clips) and the failures (a combined movement model that did not beat its parts).
+
+| stakeholder | what the project gives them | what they should not assume |
+|---|---|---|
+| film students and teachers | searchable, countable shot descriptions in course vocabulary | that each token is correct |
+| editors and filmmakers | rhythm, coverage and "shots like this" for a reference film | that movement sets are clean |
+| film scholars and archivists | one consistent, traceable vocabulary across films | accuracy on old or unusual footage |
+| ML / vision researchers | single-use evaluations, controls, disclosed overlaps | like-for-like comparison with published systems |
+
+: Stakeholders and what they gain from, and must not assume about, the token rows. {#tbl-stakeholders}
+
+## 5) Data Cleaning
+
+Each stage of the pipeline adds columns to one central table with one row per shot. Stages are idempotent and cached by film, configuration hash and model version, so a stage is recomputed only when its inputs or code change [2]. Most of the cleaning described below happened at the boundaries of this table: deciding where shots begin and end, aligning sound with picture, keeping training and test data apart, and putting movement labels from different sources into one form.
+
+### a) Cleaning - Question 1
+
+**Shot boundaries on a black-and-white film.** Cuts are detected with PySceneDetect's ContentDetector, which compares consecutive frames using hue, saturation and brightness [7]. On a greyscale film the hue and saturation terms are always zero, so the detector loses most of its signal: at its default threshold of 27 it found only 368 shots in *Night of the Living Dead* [7]. I swept the threshold and recorded the shot count at each setting: 8 gives 1,217 shots, 12 gives 1,077, 16 gives 970, 20 gives 812 and 27 gives 368 [19]. I chose 12 provisionally and then checked it by hand on 50 randomly drawn cuts: 47 of the 50 were real cuts, a precision of 94% with a Wilson 95% interval of about 84 to 98% [1]. The threshold is stored per film in the film registry rather than in the code. Recall, the share of real cuts the detector missed, was not measured; a missed cut merges two shots into one row.
+
+**Keyframes and per-shot features.** For each shot I extract three keyframes: the start, middle and end frame. From them I compute a five-colour palette in LAB colour space, saturation, brightness, warm/cool balance, contrast and a tonal "key" from the luminance histogram, together with the shot length [7]. Three keyframes rather than one let every model slot be checked for internal agreement: when the three keyframes disagree on a slot, the row marks that slot with a star.
+
+**Audio alignment.** The sound slot initially drifted out of step with the picture. The old audio decode ignored 36 timestamp gaps in the soundtrack, 14.8 seconds in total, so the sound attributed to a shot came from later and later in the film: 0 seconds off at 60 seconds, -1.2 s at 900 s, -4.4 s at 1,800 s, -6.8 s at 3,600 s and -12.4 s at 5,400 s [19]. I found the problem when a test run on a three-minute excerpt agreed with the full-film rows on the visual slots but on only 47% of the sound slots [19]. After switching to a timestamp-aligned decode, an independent verification pass measured an offset of 0.000 seconds at all five checkpoints [20]. The fix changed the sound class of 282 of 1,077 shots (26.2%), all after the first gap at 639.7 seconds, and nothing else [19].
+
+**Sound grouping.** The sound slot reduces the top labels of a pretrained AudioSet classifier to four classes: dialogue, score, ambient and silence [5]. I later found that music labels without the word "music" in their name, such as "Opera", fell through to ambient [21]. Under the sound-grouping fix every label in AudioSet's music subtree, plus singing, now maps to score, with four sound-effect labels kept as ambient [22]. On *Night of the Living Dead* this changed the sound slot of 24 shots: 14 from ambient to score, 9 from dialogue to score and 1 from ambient to dialogue; no other slot changed [22].
+
+**Small repairs.** A formatting bug printed one start time as "050:60.0"; after the fix it prints "051:00.0", and the table itself did not change [23]. The subtitle file available for this film is automatic speech recognition and is unreliable [7], so subtitle text is kept as a column but is not used in any analysis.
+
+**Caching and identity.** Every stage writes a manifest that binds its output to the hashes of its inputs and of its code, and a stage is reused only when those hashes match; caches that predate this rule were rebuilt rather than adopted on matching shot counts or timestamps [7]. This matters for cleaning because every fix above (threshold, audio decode, sound grouping, timestamp printing) changes an identity and therefore forces exactly the dependent stages to re-run, while a dry run reports which stages would run before anything is computed [22]. After each fix, the unchanged columns were compared with backups and found identical, so each correction can be shown to have touched only what it was meant to touch [22].
+
+### b) Cleaning - Question 2
+
+**Leakage between training and test images.** ShotQA and ShotBench were built from overlapping sources, so before training anything I searched for test images that also appear in the training set. I compared every ShotQA image with every ShotBench image using a 64-bit perceptual hash and then checked each candidate pair at pixel level: 764 ShotQA images had at least one same-frame partner in ShotBench [24]. I excluded the union of a hash rule and the pixel-level matches, 2,055 images in total, from all training [24]. An audit sample afterwards still found one strong same-shot candidate among 32 test images, so some residual effect may remain [9].
+
+**Shared films.** Removing duplicate images does not remove shared films. Matching film titles, 202 of the 242 films listed for ShotBench also supply images to ShotQA [25]. These are different frames of the same films, so the overlap is a domain-similarity caveat rather than image leakage, but it means that ShotBench is not a test on unseen films [25].
+
+**A split by film.** Because frames of one film resemble each other, I split ShotQA by film rather than by image for validation: 71 of 706 films held out [9]. On an earlier model, a by-image split overstated validation accuracy by only 1.1 points on average (73.8% against 74.9%), with larger gaps on composition (5.9 points) and angle (2.7) [19]. All checkpoint selection used the film-held-out validation set; ShotBench was never consulted.
+
+**From four options to a full vocabulary.** ShotBench asks four-option questions, but a film arrives with no options: every label in the vocabulary is a candidate. Before scoring any film I compared seven ways of asking the frozen model for a label on a 1,498-question validation subset, under a selection rule written in advance [26]. The rule chose method D, which lists the whole vocabulary of an attribute with letters in a single question (7 forward passes per keyframe), because it scored within 1.0 point of the best method (71.2 against 71.6) with the fewest passes [26]. A shot's label is then the label with the highest mean probability over its three keyframes, a rule fixed before any film labels existed [4].
+
+**Vocabulary gaps.** The angle vocabulary inherited from ShotQA has no eye-level class, so a shot taken at eye level must be labelled low or high [27]. I kept the vocabulary rather than invent a class the model was never trained on, and I treat the low/high split on this film as an artefact of the vocabulary rather than a description of the camera.
+
+### c) Cleaning - Question 3
+
+**Movement labels as atoms.** ShotQA describes camera movement in free text, often with several motions at once or in sequence. In an audit of the 1,058 movement clips from 129 sources, 36% of labels described a single motion, 42% simultaneous motions and 22% sequential motions [19]. I therefore parsed each label into a set of movement "atoms" (pan-left, pan-right, tilt-up, push-in, pull-out, boom-up, static and so on) and treated movement as a multi-label problem [19]. Where a benchmark option contained a phrase the parser could not map, that part was ignored; four ShotBench options have unmapped parts, and dolly-zoom has no training example [13].
+
+**A split by source video.** Clips cut from the same source video share camera style, so I held out 19 of the 129 sources for validation rather than random clips [7]. The audit found no identical clips between ShotQA and ShotBench's movement videos, but 427 of the 464 ShotBench movement videos share a source with a ShotQA clip [19].
+
+**Frame-rate conformity.** The geometry model's features depend on the frame rate. All ShotQA training clips were processed at an almost constant rate (11.988 frames per second after sampling), while every CameraBench clip runs at 14.286 frames per second, which put the frame-rate feature more than ten training standard deviations away from the training data [13]. Before extracting features, every test clip is therefore resampled to 23.976 frames per second and then every second frame is kept, a step fixed before the test [13]. After conformity, 28 of 464 ShotBench and 53 of 1,071 CameraBench clips still lie more than ten standard deviations out on at least one feature [13]. No comparison with and without this step was run on the test sets, so its effect on accuracy is not known.
+
+**Questions for CameraBench.** CameraBench's native protocol is not a four-option format. I generated four-option questions with an algorithm fixed before the test: the correct option is the clip's mapped atom set, and the three distractors are atom sets of other clips (seed 0); 137 clips without a mapped atom were excluded and counted, leaving 934 questions [13]. These questions are not comparable with published CameraBench results.
+
+**From probabilities to a token.** For film rows, the move slot lists every atom whose probability is at least 0.5, or the single most likely atom when none reaches 0.5 [28]. This keeps every row filled but allows sets that no real camera could produce, such as pan-left together with pan-right; I count these "contradictory" sets in section 6c rather than filter them out.
+
+## 6) Data Analysis
+
+### a) Analysis 1
+
+#### Methodology
+
+To judge whether a film can become reliable shot tokens, I looked at four properties of the process rather than at the correctness of individual slots, which needs labels. First, **segmentation**: how many shots the detector finds and how many of a random sample of its cuts are real. Second, **completeness**: whether every shot receives a full row with no missing movement slot. Third, **reproducibility**: whether re-running a stage on the same inputs gives byte-identical outputs, and whether independent replays of the models match. Fourth, **behaviour on new input**: whether the one-command entry point, which runs every stage on any video file, works on footage it was not developed on, and whether its rows agree with the rows of the full-film run where the two overlap.
+
+Reproducibility was checked by a separate verification pass for each change, one that did not write the code it checked and worked in its own copy of the repository. Each pass committed its pass/fail checks before reading results, recomputed key evidence from the original inputs and deliberately broke every guard it was asked to trust ("mutation checks"). Nothing was merged without an accepted verdict from a pass that did not write it.
+
+#### Visual and Numeric Results
+
+**Segmentation and completeness.** At threshold 12 the detector found 1,077 shots in *Night of the Living Dead*, of which 47 of 50 sampled cuts were real [1]. The average shot lasts 5.3 seconds and the median shot 3.0 seconds [7], with an interquartile range of 1.7 to 6.1 seconds (@fig-lengths) [6]. The v1 row was built for all 1,077 shots and reproduced cell for cell by an independent verification pass [7], with no missing movement slot [29].
+
+![Distribution of the 1,077 automatically detected shot lengths of *Night of the Living Dead* (log-spaced bins, log seconds axis). Dashed line: median 3.0 s (interquartile range 1.7-6.1 s). Lengths depend on the cut detector; missed or false cuts move shots between bins [6].](figures/night_of_the_living_dead_fig1_shot_lengths.png){#fig-lengths}
+
+**Reproducibility.** Every reproduction I attempted succeeded exactly. For the static model, a replay of 300 validation questions gave 300 of 300 identical answers with a maximum logit difference of 0.0 [12]. A full re-run of the full-vocabulary scoring over the film gave 0 disagreements in 22,617 score vectors [30], and a replay on the GPU matched 630 of 630 vectors [7]. The film's movement table and token rows were byte-identical after a re-run on 2026-10-13 [29], and the movement probes of section 6c replayed within one part in a million [7]. The verification pass of the audio fix ran five mutations and found one guard that the author's tests had missed, and added a test for it [20]; the verification of the entry point ran 13 of 13 checks [19] and 23 mutations [31].
+
+**Three real rows.** @tbl-rows shows three rows of the film taken at the 25%, 50% and 75% positions of the shot table, chosen by position rather than by content [23]. They show both what the rows offer (a compact, searchable description) and what they cost: in the third row, five of the seven model slots carry a star because the keyframes disagree, and the movement sets of the second and third rows combine three or four atoms. The rows come from the 4B token table; with the earlier 2B model shots 269 and 538 read daylight rather than artificial light, and shot 807 high angle and single framing [23], a change rather than a proven improvement.
+
+| slot | shot 269 (22:14.5) | shot 538 (51:00.0) | shot 807 (74:42.3) |
+|---|---|---|---|
+| size | MCU | MCU | CU* |
+| lens | ultra-wide | medium | long* |
+| angle | low | low | low* |
+| framing | single | single | insert* |
+| light | artificial*/hard* | artificial*/hard* | artificial/high-contrast |
+| comp | right-heavy | center* | right-heavy* |
+| key | mid-key | mid-key | low-key |
+| DoF | deep | medium | shallow |
+| people | 1 | 1 | 0 |
+| sound | score | ambient | ambient |
+| len | 4-8s | 2-4s | 2-4s |
+| palette | g21 | g20 | g21 |
+| move | static | push-in + boom-up + tilt-down + move-left | pull-out + boom-up + tilt-up |
+
+: Three real token rows of *Night of the Living Dead*, shown slot by slot. A star marks a slot on which the three keyframes disagree. These values are predictions of the 4B model, of unmeasured accuracy [23]. {#tbl-rows}
+
+**What the rows reveal over a whole film.** Cutting the film into twenty five-minute windows gives the visual arc of @fig-arc, recomputed on the 4B table [32]. The fastest cutting falls in minutes 80-85 (23.0 shot starts per minute), 5-10 (17.6) and 65-70 (16.8); the slowest in minutes 25-30 (5.2), 0-5 (5.4) and 55-60 (5.6) [32]. Measured as the rank correlation of a window series with its position in the film, the predicted share of daylight falls (-0.44), the predicted share of high-contrast light rises (+0.21) and the heuristic share of low-key shots rises (+0.25) [32]; the earlier 2B model gave the same directions. These are descriptions, not tests, and the lighting-type series is implausibly volatile on this film [7]. Series built from the middle keyframe alone correlate 0.94 to 0.98 with the three-keyframe series, so the shapes do not depend on how keyframes are pooled [32].
+
+![*Night of the Living Dead* in 20 five-minute windows: shot starts per minute, median shot length (band: within-window IQR), close-shot share, mean shot size (0 = ECU ... 6 = EWS), low-key share, mean people count (capped at 4), multi-person share and dialogue share (bands: 95% bootstrap intervals over the window's shots). Blue: model predictions; orange: heuristics. Hollow markers: windows with fewer than 10 shots. Model predictions and heuristics of unmeasured accuracy; within-film shapes only [6].](figures/night_of_the_living_dead_fig2_visual_arc.png){#fig-arc}
+
+After both sound fixes, dialogue covers 40.8% of the film's running time, score 37.4% and ambient sound 21.8% (@tbl-sound) [19]. The trend in dialogue share across the windows is near zero (+0.03), as it was before the fixes [32]. The sound slot remains provisional until a planned 20-shot listening check [4].
+
+| sound class | share of running time now | after the audio fix only (superseded) |
+|---|---|---|
+| dialogue | 40.8% | 42.4% |
+| score | 37.4% | 34.8% |
+| ambient | 21.8% | 22.8% |
+
+: Share of the running time of *Night of the Living Dead* by sound class, after the audio alignment fix and the sound-grouping fix [19, 22]. {#tbl-sound}
+
+Finally, because every row has the same shape, each shot can be matched with the shot whose tokens are most similar ("shots like this"). @fig-similar compares the time gap between each shot and its most similar partner with the gap between all eligible pairs [33]. The median gap to the most similar shot is 17.3 minutes against 28.6 minutes for all pairs, and 17.5% of top partners lie within one minute against 2.2% of all pairs [6]: similar tokens cluster in time, as scenes would suggest. A high similarity score means the pipeline wrote similar tokens, not that the shots look alike, and a long-range pair is not evidence of a deliberate visual callback [33].
+
+![For each of the 1,077 shots, the time gap to its most similar other shot by token similarity (solid line), against the gap of all 1,154,550 eligible candidate pairs (dashed line), as the share per 4-minute bin. Medians 17.3 min (top-1) and 28.6 min (all pairs). Equal slot weights are a choice; the reference is for scale only, with no test [6].](figures/night_of_the_living_dead_fig3_similar_gap.png){#fig-similar}
+
+**New footage.** To test the one-command entry point on input outside the film registry, I ran it on a 180-second excerpt of the film treated as a new video. It ran all five stages and found 19 shots; 18 of 18 interior cuts matched the full-film cuts within one frame [19]. On 17 matched shots the visual slots agreed 88 to 100% per slot, the differences being near-ties [7]. This is a consistency check, not accuracy. The sound slot agreed in only 47% of shots, which is how the audio drift of section 5a was found; that number is superseded [19].
+
+**A browsable view.** To make the rows usable by people who do not read tables, I built a local web application that opens on an About page explaining the thirteen slots and the meaning of stars and question marks, and offers a film overview, a shot explorer that filters by any slot and shows the three keyframes with the readable row, a "shots like this" view and a CSV download of the filtered rows; since October 22 it shows the 4B token rows [34]. Every page states that its tokens and series are predictions or unverified heuristics of unmeasured accuracy [34]. A public mode lists only films marked public domain in the committed registry, which today means only *Night of the Living Dead*, and fails closed if the registry cannot be read [34]. An independent verification pass accepted the first version with no blockers [35].
+
+**What did not work.** Not every planned analysis survived. A study of power dynamics between characters needed a timed transcript with speaker attribution; one bounded attempt produced timed text but could not attribute speakers with the tools available locally, so the analysis was dropped under its pre-registered stop rule [36]. I record it here because a reader of the rows might otherwise assume that dialogue tokens say who is speaking; they do not.
+
+#### Answer to Question 1 and Interpretation
+
+As a process, yes: a film can become shot tokens reliably. The pipeline segments a black-and-white film with a hand-checked cut precision of 94%, fills every slot of every row, reproduces its own outputs byte for byte, and runs unchanged on footage outside its registry, where it agrees with itself at the level of cuts and most visual slots. Two qualifications matter. First, the segmentation is only as good as a threshold chosen per film, and recall was never measured, so some rows silently describe two shots. Second, reliability of the process says nothing about the correctness of the content: the most important finding of this part of the work was a defect (the audio drift) that made the rows wrong while every reproduction check passed. The rows are dependable as an index of a film; whether each entry in the index is right is the subject of the next two questions.
+
+### b) Analysis 2
+
+#### Methodology
+
+Static attributes are labelled by Qwen3-VL-2B-Instruct, a two-billion-parameter vision-language model, with a rank-16 LoRA adapter (a small set of trainable low-rank weights added to the frozen model). It was trained for one epoch on the film-split ShotQA training set (51,111 samples, 3,195 updates) on an M2 Max laptop [12], which took 7.7 hours [7]. The base model was the fastest candidate in a gating benchmark (0.581 seconds per training step, 6.5 GB peak memory) [37]. The checkpoint was chosen by a rule written in advance on the film-held-out validation set, then frozen and hashed before its single ShotBench evaluation [12]. Before it, I had built a simpler model (Phase 3A): a frozen SigLIP image encoder with a small classifier head per attribute [9].
+
+**The 4B model now used on the film.** Later I trained the same recipe on the larger Qwen3-VL-4B-Instruct: a fresh rank-16 LoRA adapter, one epoch, 3,195 updates on the same training samples, on the same laptop [19]. It was compared with the 2B on a deduplicated version of the film-held-out validation set (5,822 questions) under a selection rule written in advance [38]. By a rule fixed before its ShotBench result was known, the film pipeline then switched to the 4B, used alone (no ensemble, no blend with the SigLIP heads), with the token vocabulary unchanged; the 2B outputs remain reproducible [39]. Every film number in this section comes from the 4B token table; the ShotBench and validation results of the 2B are kept below unchanged as the results of the earlier model.
+
+I measured accuracy in three settings. On **ShotBench**, the main measure is accuracy on the 3,108 static four-option questions, read from the option letter to which the model assigns the highest score ("letter-logit" scoring), with chance at 25% [12]. On **validation**, I additionally replaced every image with flat grey to see how much of the accuracy comes from the picture [12]. On **the film**, where no labels exist, I could only describe the predicted distributions and measure how often a shot's three keyframes agree, which is consistency, not accuracy [40].
+
+#### Visual and Numeric Results
+
+**ShotBench, earlier 2B model.** The seven-attribute mean of the fine-tuned 2B model is 73.2% [12]. The earlier SigLIP model reached 67.5% (the film-split model designated as primary) and 68.7% (a by-image variant) [9]. The ShotBench paper reports 60.8% for GPT-4o and 66.8% for ShotVL-3B on the same seven columns, but under different protocols, so these are context rather than a comparison [9]. @tbl-shotbench gives the per-attribute results; the intervals are nominal Wilson intervals that ignore clustering by film [12].
+
+| attribute | accuracy | correct / n | Wilson 95% interval |
+|---|---|---|---|
+| shot size | 85.6% | 415 / 485 | 82.2-88.4 |
+| shot framing | 89.2% | 397 / 445 | 86.0-91.8 |
+| camera angle | 79.3% | 361 / 455 | 75.4-82.8 |
+| lens size | 67.3% | 329 / 489 | 63.0-71.3 |
+| lighting type | 66.7% | 270 / 405 | 61.9-71.1 |
+| lighting conditions | 58.3% | 204 / 350 | 53.1-63.3 |
+| composition | 65.8% | 315 / 479 | 61.4-69.9 |
+| **seven-attribute mean** | **73.2%** | | |
+
+: ShotBench static four-option accuracy of the fine-tuned 2B model (one sealed evaluation, letter-logit scoring; chance 25%) [12]. {#tbl-shotbench}
+
+**The 4B model.** On the deduplicated validation set the 4B scores 82.49% against 81.16% for the 2B, a gain of 1.33 points with a film-clustered bootstrap 95% interval of +0.46 to +2.18 (descriptive), and it is higher on every attribute (@tbl-4b) [38]. Because the 4B was selected on this same validation set, the gain is optimistic. On ShotBench, the 4B had one sealed letter-logit run in which its scores were blended with the small SigLIP heads (a recipe chosen on validation): 75.14%, with a 95% bootstrap interval of 73.64 to 76.64; in the same pass the 4B's letter logits alone gave 75.06%, against 73.16% for the 2B, so the blend added about 0.1 points [14, 19]. The film uses the 4B without the blend. The 4B is therefore about two points higher than the 2B on ShotBench in this scoring, but no paired test was registered in advance, the 4B was chosen on validation and ShotBench had already been looked at several times, so I do not call the difference significant.
+
+| attribute | 2B, validation | 4B, validation |
+|---|---|---|
+| shot size | 85.62 | 86.64 |
+| lens size | 67.44 | 67.56 |
+| camera angle | 84.54 | 86.42 |
+| shot framing | 87.25 | 88.67 |
+| lighting type | 84.85 | 86.16 |
+| lighting conditions | 74.14 | 76.72 |
+| composition | 84.27 | 85.28 |
+| **seven-attribute mean** | **81.16** | **82.49** |
+
+: Accuracy (%) of the 2B and 4B models on the deduplicated film-held-out ShotQA validation set (5,822 questions); the 4B was selected on this set [38]. {#tbl-4b}
+
+The model is strongest on the geometric attributes (size, framing, angle) and weakest on lighting and composition. An erratum later moved one lens question between answer strata; no headline number changed [41].
+
+**Published ShotBench results.** For context, @tbl-published lists every model in Table 2 of the ShotBench paper, 24 vision-language models and the paper's own ShotVL-3B, with the paper's seven static columns, my unweighted mean of those seven columns, and camera movement shown separately, sorted by the seven-column mean [42]. These are the paper's published numbers, transcribed and not rerun [42].
+
+| # | model (published) | group | SS | SF | CA | LS | LT | LC | SC | 7-column mean | CM (separate) |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | ShotVL-3B | ShotVL (paper's model) | 77.9 | 85.6 | 68.8 | 59.3 | 65.7 | 53.1 | 57.4 | 66.83 | 51.7 |
+| 2 | GPT-4o | proprietary | 69.3 | 83.1 | 58.2 | 48.9 | 63.2 | 48.0 | 55.2 | 60.84 | 48.3 |
+| 3 | Qwen2.5-VL-72B-Instruct | open | 75.1 | 82.9 | 56.7 | 46.8 | 59.0 | 49.4 | 54.1 | 60.57 | 48.9 |
+| 4 | InternVL3-38B | open | 68.0 | 84.0 | 51.9 | 43.6 | 64.4 | 46.9 | 54.7 | 59.07 | 44.6 |
+| 5 | InternVL2.5-38B | open | 67.8 | 85.4 | 55.4 | 41.7 | 61.7 | 48.9 | 52.4 | 59.04 | 44.0 |
+| 6 | InternVL3-78B | open | 69.7 | 80.0 | 54.5 | 44.0 | 65.5 | 47.4 | 51.8 | 58.99 | 44.4 |
+| 7 | Qwen2.5-VL-7B-Instruct | open | 69.1 | 73.5 | 53.2 | 47.0 | 60.5 | 47.4 | 49.9 | 57.23 | 30.2 |
+| 8 | Qwen2.5-VL-32B-Instruct | open | 62.3 | 76.6 | 51.0 | 48.3 | 61.7 | 44.0 | 52.2 | 56.59 | 43.8 |
+| 9 | InternVL3-14B | open | 59.6 | 82.2 | 55.4 | 40.7 | 61.7 | 44.6 | 51.1 | 56.47 | 38.2 |
+| 10 | Gemini-2.5-flash-preview-04-17 | proprietary | 57.7 | 82.9 | 51.4 | 43.8 | 65.2 | 45.7 | 45.9 | 56.09 | 43.5 |
+| 11 | LLaVA-Onevision-Qwen2-7B-Ov-Chat | open | 58.4 | 71.0 | 52.3 | 38.7 | 59.5 | 44.9 | 50.9 | 53.67 | 39.7 |
+| 12 | InternVL2.5-8B | open | 56.3 | 70.3 | 50.8 | 41.1 | 60.2 | 45.1 | 50.1 | 53.41 | 33.6 |
+| 13 | InternVL3-8B | open | 62.1 | 65.8 | 46.8 | 42.9 | 58.0 | 44.3 | 46.8 | 52.39 | 44.2 |
+| 14 | Gemini-2.0-flash | proprietary | 48.9 | 75.5 | 44.6 | 31.9 | 62.2 | 48.9 | 52.4 | 52.06 | 47.4 |
+| 15 | LLaVA-Video-7B-Qwen2 | open | 56.9 | 65.4 | 45.1 | 36.0 | 63.5 | 45.4 | 37.4 | 49.96 | 35.3 |
+| 16 | Qwen2.5-VL-3B-Instruct | open | 54.6 | 56.6 | 43.1 | 36.6 | 59.3 | 45.1 | 41.5 | 48.11 | 31.9 |
+| 17 | InternVL3-2B | open | 56.3 | 56.0 | 44.4 | 34.6 | 56.8 | 44.6 | 43.0 | 47.96 | 38.1 |
+| 18 | Internlm-xcomposer2d5-7B | open | 51.1 | 71.0 | 39.8 | 32.7 | 59.3 | 35.7 | 35.7 | 46.47 | 38.8 |
+| 19 | VILA1.5-13B | open | 36.7 | 54.6 | 40.7 | 34.8 | 52.8 | 35.4 | 34.2 | 41.31 | 31.3 |
+| 20 | VILA1.5-8B | open | 40.6 | 44.5 | 39.1 | 29.7 | 48.9 | 32.9 | 34.4 | 38.59 | 36.9 |
+| 21 | VILA1.5-3B | open | 33.4 | 44.9 | 32.1 | 28.6 | 50.6 | 35.7 | 28.4 | 36.24 | 21.5 |
+| 22 | LLaVA-NeXT-Video-7B | open | 35.9 | 37.1 | 32.5 | 27.8 | 50.9 | 31.7 | 28.0 | 34.84 | 31.3 |
+| 23 | Ovis2-8B | open | 35.9 | 37.1 | 32.5 | 27.8 | 50.9 | 31.7 | 28.0 | 34.84 | 35.3 |
+| 24 | Instructblip-vicuna-7B | open | 27.0 | 27.9 | 34.5 | 29.4 | 44.4 | 29.7 | 27.1 | 31.43 | 25.0 |
+| 25 | Instructblip-vicuna-13B | open | 26.8 | 29.2 | 27.9 | 28.0 | 39.0 | 24.0 | 27.1 | 28.86 | 22.0 |
+| | ***This project (not in Table 2; not ranked)*** | | | | | | | | | | |
+| | **Ours: 4B, letter-logit (VLM only)** | ours | 87.22 | 90.11 | 81.54 | 67.28 | 70.12 | 60.86 | 68.27 | **75.06** | n/a (see note) |
+| | **Ours: 4B, official protocol (matched)** | ours | 86.39 | 90.34 | 78.90 | 66.67 | 70.12 | 63.14 | 67.43 | **74.71 [73.17, 76.25]** | n/a (see note) |
+| | **Ours: earlier 2B, official protocol (matched)** | ours | 85.36 | 88.99 | 78.90 | 66.26 | 68.15 | 59.43 | 65.76 | **73.26 [71.73, 74.81]** | n/a (see note) |
+
+: Published ShotBench results (Table 2 of the ShotBench paper), with three rows of this project set apart after them. SS shot size, SF shot framing, CA camera angle, LS lens size, LT lighting type, LC lighting conditions, SC shot composition, CM camera movement; accuracy in % on four-option questions. The 7-column mean is my unweighted mean of SS to SC (camera movement excluded); the paper's own average includes camera movement [42]. Our rows: the Qwen3-VL-4B LoRA adapter now used on the films, its letter logits alone, from its sealed letter-logit run [43]; the 4B and the earlier 2B under the benchmark's official prompt and parser (the matched protocol; 95% bootstrap intervals) [44, 45]. {#tbl-published}
+
+How to read our rows (they are not a ranking):
+
+- **Different protocol.** The letter-logit row reads the option letter to which the model gives the highest score (letter-logit scoring); the paper's numbers come from its VLMEvalKit prompt and answer parser with a GPT-4o extraction fallback [12, 42]. Part of any gap may come from the scoring rather than from the models.
+- **Published, not rerun.** None of the 25 published models was run by me; their numbers are copied from the paper [42].
+- **Shared films.** ShotQA, my only training data, shares 202 of the 242 films listed for ShotBench, so ShotBench is not a test on unseen films [25].
+- **Selection.** The 4B checkpoint was selected on the ShotQA validation set [38], and its ShotBench run came after repeated looks at the same questions [14].
+- **No paired test.** Per-question outputs of the published models are not available, so no paired comparison is possible; the letter-logit row is a point value from one run, the matched rows are intervals compared with published point values.
+- **Different training.** My models are supervised fine-tuning only (LoRA adapters on ShotQA); ShotVL-3B adds reinforcement learning (GRPO) on top of supervised fine-tuning, and the other 24 are general models evaluated as released [46].
+- **Camera movement is a different model.** The CM column has no entry for our rows: movement is labelled by my separate geometry model, which scored 74.6% on ShotBench's movement questions [13], and that number is not part of the seven-column mean.
+- **Matched rows.** The two official-protocol rows use the paper's official prompt and parser but no GPT-4o fallback and a different inference engine, with the checkpoint selected on the ShotQA validation set, and carry every caveat listed below for @tbl-matched and @tbl-matched-4b [44, 45, 47].
+
+**The wording rule against the whole table.** A rule written before the matched run fixed the wording: my score is "above" a published number only if my lower bound exceeds it, "below" only if my upper bound is under it, otherwise "comparable" [47]. It named only ShotVL-3B and GPT-4o as comparators; applying the same rule to the other 23 published models is my extension after the fact, on the seven-column mean only. The 4B's matched lower bound, 73.17, exceeds the published seven-column mean of all 25 models in @tbl-published, the highest being ShotVL-3B's 66.83; so does the earlier 2B's matched lower bound, 71.73 [42, 44, 45]. By the rule, both matched means are above all 25 published means and below none. The letter-logit 75.06 is numerically higher than all 25 published means, but it is a different protocol with no interval, so the rule gives it no verdict [43]. The per-attribute verdicts against ShotVL-3B and GPT-4o are those of @tbl-matched and @tbl-matched-4b and are unchanged (lighting type is comparable to ShotVL-3B for both models). None of this says the models are better on films.
+
+**How much comes from the picture.** On the film-held-out validation set the adapter scored 81.16%; with every image replaced by flat grey it fell to 35.06%, against 25% for chance and 45.67% for a baseline that answers from label frequencies alone [12]. The model clearly uses the image, but non-visual cues in the question still carry some answers. Validation also overstated the test result for lighting and composition by roughly 16 to 18 points [7], which is a warning about trusting validation numbers on attributes whose labels are less objective.
+
+**From four options to a full vocabulary.** On a film the model must choose from the whole vocabulary rather than four options. On validation, full-vocabulary scores run 3 to 10 points below four-option accuracy, and 6 to 9 of 51 labels are never predicted, both on validation and on the film, so this is largely a property of the model rather than of the film [40].
+
+**On *Night of the Living Dead*.** Across 1,077 shots and three keyframes each, the 4B labels 68% of shots as extreme close-up to medium shot [48], against 57% in the ShotQA label prior [40]; it labels 44% of shots low angle, 38% high angle and 11% dutch; and it labels 48% daylight and 46% artificial light, never choosing HMI, LED or tungsten as the primary label [48]. The angle split is an artefact of the missing eye-level class [27]. The four single-label attributes agree across all three keyframes in only 25% of shots, and all seven model slots agree in 9.0% [48]. A cross-check against the person detector, which is agreement and not accuracy, is reassuring: when exactly one person is detected, the model says single, insert or over-the-shoulder framing in 90% of 556 shots [48]. The earlier 2B model gave 73% close shots, 50% low angle and 66% daylight [40]: switching models changed the lighting-condition slot of 574 of the 1,077 shots, the lighting type of 295 and the size and angle of about 230 each [7]. Without labels I cannot say which model is closer to the film; the size of the change is itself a measure of how much the rows depend on the model.
+
+**What else I tried, without gain.** The 4B was the one real improvement among several attempts in the last week of the project. An ensemble of several views of each image helped the 2B on validation, but on the 4B nearly all of its gain came from the SigLIP blend, which added about 0.1 points on ShotBench, so it is not used [19]. Retraining with an extra dataset (CineScale2) did not pass its pre-registered bar [49]. An eye-level classifier looked accurate but had learned a frame-size artefact of its training source, so the vocabulary still has no eye-level class [50]. Augmentation, a doubled image budget and extra training steps on the 4B all stayed within noise [51], and a small reinforcement-learning pilot (GRPO, 325 updates) made the model more confident without changing its validation accuracy (82.43% against 82.49%) [52].
+
+**A learned style code did not transfer.** I also tried to add a learned "style" slot, a discrete code from a small vector-quantised autoencoder trained on ShotQA stills. It was healthy on ShotQA (all 256 first-level codes used) but failed the bars set in advance on the film: one code took 35.7% of the middle keyframes (bar: at most 10%), only 48 codes appeared, and a shot's three keyframes shared a code in 32.5% of shots (bar: 50%) [53]. The style slot stays out of the row.
+
+**Limits of these numbers.** Three disclosures qualify the ShotBench result beyond the shared films discussed in section 5b. The SigLIP film-split model was designated as primary after the by-image model's test result was known; neither was chosen by its test score, but that choice was not blind to the first result [9]. Each main model comes from one training run with one seed, so run-to-run variation is unknown [12, 19]. The 4B was selected on the validation set on which it is compared with the 2B, and its ShotBench run came after four earlier looks at the same questions [14, 38]. And because the paper's GPT-4o and ShotVL-3B numbers come from text decoding with a GPT-4o extraction fallback, while my number reads option-letter scores, part of any difference may come from scoring rather than from the models [12]; supervised fine-tuning against a zero-shot GPT-4o is also not a like-for-like comparison [7].
+**Matched-protocol comparison.** The 73.2% above uses my own letter-logit scorer, whereas the ShotBench paper's numbers come from its official prompt and answer parser. I evaluated the same frozen model once more under the official protocol; ShotVL-3B itself was not downloaded or run, and the comparison rule was written before the run [47]. The protocol used the official user prompt and parser, greedy decoding with up to 1,024 new tokens and no GPT-4o fallback parser, so an unparseable answer counts as wrong [45, 54]. On all 5,826 validation questions the switch first moved the mean from 81.16% to 81.07% (plain system prompt) and 80.87% (reasoning prompt), with paired intervals of [-0.43, +0.23] and [-0.73, +0.16] points, so neither change is detectable [55]. The sealed ShotBench run then used the reasoning variant on all 3,108 static questions, with 0 invalid answers [45].
+
+| attribute | mine, matched [95% CI] | ShotVL-3B (published) | verdict | GPT-4o (published) | verdict |
+|---|---|---|---|---|---|
+| shot size | 85.36 [82.06, 88.45] | 77.9 | above | 69.3 | above |
+| shot framing | 88.99 [86.07, 91.69] | 85.6 | above | 83.1 | above |
+| camera angle | 78.90 [75.16, 82.64] | 68.8 | above | 58.2 | above |
+| lens size | 66.26 [61.96, 70.55] | 59.3 | above | 48.9 | above |
+| lighting type | 68.15 [63.70, 72.59] | 65.7 | comparable | 63.2 | above |
+| lighting conditions | 59.43 [54.29, 64.86] | 53.1 | above | 48.0 | above |
+| composition | 65.76 [61.38, 69.94] | 57.4 | above | 55.2 | above |
+| **unweighted 7-attribute mean** | **73.26 [71.73, 74.81]** | **66.83** | **above** | **60.84** | **above** |
+
+: Matched-protocol ShotBench result of my frozen model against the published ShotVL-3B and GPT-4o numbers (intervals from 10,000 bootstrap resamples stratified by attribute, seed 0). "Above" only where my lower bound exceeds the published number; "below" only where my upper bound is under it; otherwise "comparable" [45, 47]. {#tbl-matched}
+
+Under the official ShotBench prompt and answer parser, my seven-attribute mean is 73.3% [71.7, 74.8], above the published 66.8% for ShotVL-3B and 60.8% for GPT-4o; lighting type is only comparable to ShotVL-3B, and two margins sit close to the boundary: lighting conditions against ShotVL-3B (lower bound 54.29 against 53.1) and lighting type against GPT-4o (63.70 against 63.2) [45]. This statement holds only with every caveat fixed before the run [45, 47]:
+
+- **Not reruns.** The other numbers are published; ShotVL's inference engine and whether it used the reasoning prompt are unconfirmed, and the paper used a GPT-4o fallback parser that I did not.
+- **No paired test** is possible, because their per-question outputs are not available; I compare an interval with a published point value.
+- **Shared films.** Both my model and ShotVL-3B are trained on ShotQA, which shares 202 of 242 films with ShotBench.
+- **Different models.** Mine has 2 billion parameters and supervised fine-tuning only; ShotVL-3B has 3 billion and supervised fine-tuning plus reinforcement learning (GRPO); GPT-4o is zero-shot.
+- **A second look** at ShotBench with this model; the first (letter-logit, 73.2%) stays reported unchanged, and nothing was tuned in between.
+- **Different engine.** MLX (mlx-vlm 0.7.4) on Apple silicon, not the official HF bf16 with flash-attention; my image budget is 147,456 pixels.
+- **Seven static columns only.** 66.83 and 60.84 are my unweighted means of the paper's seven static columns, not its eight-dimension headline, which includes camera movement.
+
+I therefore do not claim that my model is generally better than ShotVL-3B or GPT-4o, and I make no claim about films outside ShotBench.
+
+**Matched-protocol comparison of the 4B.** Everything above in this comparison concerns the earlier 2B model and stays as obtained. Before any 4B ShotBench number existed, I registered one sealed run of the 4B that now labels the film under the same official protocol (the same protocol definition, reasoning variant, all 3,108 static questions), followed by its letter-logit run [14, 39]. It gave 0 invalid answers [44].
+
+| attribute | 4B, matched [95% CI] | 2B, matched | ShotVL-3B (published) | verdict | GPT-4o (published) | verdict |
+|---|---|---|---|---|---|---|
+| shot size | 86.39 [83.30, 89.28] | 85.36 | 77.9 | above | 69.3 | above |
+| shot framing | 90.34 [87.42, 93.03] | 88.99 | 85.6 | above | 83.1 | above |
+| camera angle | 78.90 [75.16, 82.64] | 78.90 | 68.8 | above | 58.2 | above |
+| lens size | 66.67 [62.58, 70.76] | 66.26 | 59.3 | above | 48.9 | above |
+| lighting type | 70.12 [65.68, 74.57] | 68.15 | 65.7 | comparable | 63.2 | above |
+| lighting conditions | 63.14 [58.29, 68.29] | 59.43 | 53.1 | above | 48.0 | above |
+| composition | 67.43 [63.26, 71.61] | 65.76 | 57.4 | above | 55.2 | above |
+| **unweighted 7-attribute mean** | **74.71 [73.17, 76.25]** | **73.26** | **66.83** | **above** | **60.84** | **above** |
+
+: Matched-protocol ShotBench result of the 4B against the earlier 2B under the same protocol and the published ShotVL-3B and GPT-4o numbers (intervals from 10,000 bootstrap resamples stratified by attribute, seed 0; verdicts by the pre-registered wording rule as in @tbl-matched) [44, 45, 47]. {#tbl-matched-4b}
+
+Under the official ShotBench prompt and answer parser, the 4B's seven-attribute mean is 74.7% [73.2, 76.2], above the published 66.8% for ShotVL-3B and 60.8% for GPT-4o; lighting type is only comparable to ShotVL-3B, its lower bound missing the published number by 0.02 points (65.68 against 65.7) [44]. Against the 2B under the same protocol the 4B is about 1.5 points higher (74.71 against 73.26) [19, 44]; the two intervals overlap and no paired test was pre-registered, so I describe this difference rather than test it. Every caveat listed for the 2B applies to the 4B as well, with three additions [14, 38, 47]:
+
+- **Model.** The 4B has 4 billion parameters, still with supervised fine-tuning only, against ShotVL-3B's 3 billion with supervised fine-tuning plus reinforcement learning.
+- **Selection.** The 4B was selected on the ShotQA validation set on which it is compared with the 2B.
+- **More looks.** Its matched run was the fifth look at ShotBench's static questions and its letter-logit run the sixth.
+
+This is the same narrow statement as for the 2B: I do not claim that the 4B is generally better than ShotVL-3B or GPT-4o, nor that it is better than the 2B on films.
+
+#### Answer to Question 2 and Interpretation
+
+On a held-out benchmark of modern colour films, the static labels are right about three times in four when the model chooses among four options: 73.2% on average for the earlier 2B model, from 89.2% for framing down to 58.3% for lighting conditions, and about two points more for the 4B that now labels the film (75.06% with its letter logits alone), without a significance test. The grey-image control shows that most of this comes from the picture. On a full vocabulary the same model is 3 to 10 points less accurate, and several labels are never used. On *Night of the Living Dead* the accuracy is simply unknown. Everything I can measure there points to caution: the film is black and white and fifty years older than the benchmark, the angle vocabulary cannot express eye level, the keyframes of a shot agree on all four single-label attributes in only a quarter of shots, and replacing the 2B with the 4B changed more than half of the lighting-condition slots. Shot size and framing are the slots I would trust most; lighting, composition and angle on this film should be read as what the model tends to say rather than as descriptions.
+The matched-protocol runs confirm that the letter-logit results are not an artefact of my scorer (73.26% for the earlier 2B and 74.71% for the 4B under the official protocol), and under that protocol both models sit above the published ShotVL-3B and GPT-4o seven-column means, but only with the caveats listed above; the 4B is about 1.5 points higher than the 2B, a difference I describe rather than test.
+
+### c) Analysis 3
+
+#### Methodology
+
+Camera movement is predicted as a set of atoms. I froze three models before any access to the test sets [13]. The **geometry** model uses 119 optical-flow features and 112 depth-parallax features [7] with one logistic regression per atom, fitted on 903 ShotQA training clips. The **video** model is Qwen3-VL-2B with a LoRA adapter, reading eight frames per clip. The **combined** model mixes their probabilities as 0.3 times video plus 0.7 times geometry, with the weights fitted on out-of-fold predictions [13]. Before the test I registered one hypothesis: that the combined model is better than either model alone.
+
+Each model was evaluated once on each of two test sets, ShotBench movement (464 questions) and the generated CameraBench questions (934), giving six sealed evaluations [13]. The evaluations were run as a separate step from model development, after a separate verification pass had cleared the evaluator, which had passed a synthetic self-check of 67 of 67 cases [56] plus 55 CPU checks, 17 of 17 killed mutants, 50 sealing checks and a 20-of-20 validation replay [7]. Accuracy is option-restricted, with nominal Wilson intervals, and the differences between models are paired and bootstrapped over source videos [13]. On the film, where there are no labels, I ran behaviour probes fixed in advance: reversing each shot in time or mirroring it should swap direction atoms (pan-left with pan-right) and leave static unchanged [57].
+
+#### Visual and Numeric Results
+
+| test set | geometry | video | combined |
+|---|---|---|---|
+| ShotBench movement (464 questions) | 74.6% (346/464), 70.4-78.3 | 56.7% (263/464), 52.1-61.1 | 76.9% (357/464), 72.9-80.5 |
+| CameraBench, generated (934 questions) | 62.6% (585/934), 59.5-65.7 | 32.0% (299/934), 29.1-35.1 | 56.2% (525/934), 53.0-59.4 |
+
+: Camera-movement accuracy of the three frozen models on the two test sets (six sealed evaluations; option-restricted accuracy with nominal Wilson 95% intervals; chance 25%) [13]. {#tbl-movement}
+
+A baseline answering from training label frequencies scores 41.4% on ShotBench movement and 26.6% on CameraBench [13], so the geometry model is well above both chance and the prior on both sets (@tbl-movement). The paired differences tell against the registered hypothesis. The combined model minus geometry is +2.4 points [-0.9, +5.4] on ShotBench and -6.4 points [-9.8, -3.4] on CameraBench; the video model minus geometry is -17.9 [-23.7, -12.8] and -30.6 [-35.1, -26.4] [13]. **The pre-registered hypothesis "combined is better than either alone" is not supported**: the ShotBench gain includes zero, and on CameraBench the combination is worse than geometry alone [13].
+
+The video model transfers poorly. It scored 68.9% out of fold during development, but 56.7% and 32.0% on the test sets; with grey frames it kept 84.5% of its validation accuracy (82 of 140 against 97 of 140), which suggests it relies on cues in the question and options rather than on motion [13]. The out-of-fold numbers (video 68.9%, geometry 77.5%, combined 82.8%) were optimistic because the combination weights were fitted on the same questions [7, 13].
+
+An exploratory breakdown, run after the results and not pre-registered, suggests where the video model goes wrong. On CameraBench it chose an option with more than one atom in 74.9% of its answers, although only 31.2% of the correct answers were compound; its accuracy was 18.4% when the correct set had a single atom, below chance, and 62.2% when it had more [13]. About 64% of the ShotQA training answers are compound, so one hypothesis is a learned preference for compound options; it was not tested [13].
+
+Four disclosures apply to these movement numbers [13]. The ShotBench movement set is not source-disjoint from training (427 of 464 videos share a filename-derived source id with a ShotQA clip), and for CameraBench 6 of 404 source ids are shared, a proxy with film overlap unmeasured. The validation set was looked at eleven times, six logged and five declared afterwards from the work log, so those looks cannot be certified; validation selected nothing. Before CameraBench became test-only, one script read the labels of 20 sample clips for a sign check and another read aggregate label counts; nothing used them, but the absence of other unlogged reads is not established. Finally, the video model's cross-fitting run had 13 restarts, 12 of them caused by the graphics driver's watchdog, with trainer defects that a later audit found did not occur [7, 13].
+
+**On *Night of the Living Dead*.** Film rows use the geometry model only. 58.6% of shots include static in their movement set and 18.6% are static alone; the median set has two atoms; and 42.9% of sets are contradictory, pairing opposite directions or static with a motion, which no real camera produces [32]. The behaviour probes are more encouraging. The model's probability of motion separates moving from static shots with an area under the curve of 0.973 [0.96, 0.983], although this check uses the same optical flow the model sees [57]. Under time reversal the model reads pan direction on confidently predicted shots (rank correlation -0.632 between a pan atom and its opposite), but on the full probe subset no direction pair reaches the "reads direction" band fixed in advance [57]. The static atom is stable under reversal and mirroring, as it should be [57].
+
+#### Answer to Question 3 and Interpretation
+
+Partly. A model built on optical flow and depth tells camera movement well above chance on two held-out test sets, 74.6% on ShotBench movement and 62.6% on generated CameraBench questions, and on the film it separates moving from static shots almost perfectly by its own motion measure. It does not reliably tell direction, and its sets are inflated: four in ten film rows contain a contradiction. The hypothesis I registered before the test, that adding a video-language model would help, was not supported, and the video model on its own appears to answer largely from the wording of the options. For a reader of the token rows, the move slot is best taken as "the camera moves, probably in one of these ways" rather than as a precise description.
+
+## 7) Recommendations to Stakeholders
+
+The recommendations below follow the three questions. Each is addressed to the four stakeholder groups of section 4.
+
+### a) Recommendations 1
+
+*On whether a film can become reliable shot tokens.*
+
+**Film students and teachers** can use the token rows today as an index of a film: to find every close-up, to count how much of a sequence is in close shots, or to show where the cutting speeds up. The rhythm results (for example the fastest cutting in minutes 80-85 of *Night of the Living Dead*) rest on the cut detector, which was hand-checked, rather than on the models, which were not [1, 32]. I recommend treating any single row as a claim to be checked against the film, and using the stars as a guide to where the model was unsure.
+
+**Editors and filmmakers** should rely most on shot lengths and cut positions, and should check the cut threshold before trusting a new film's rhythm. A black-and-white film needed a threshold of 12 instead of the default 27, which would have found only a third of its shots [19]; any new input should get a 50-cut hand check before its rhythm is read [58].
+
+**Film scholars and archivists** can use the rows as consistent, reproducible metadata: the same input and configuration produce byte-identical outputs, and every output is bound to the hash of its inputs. Before cataloguing a collection, I recommend measuring cut recall as well as precision on a sample, since missed cuts were never measured here, and labelling a small set of shots per collection.
+
+**ML and vision researchers** should take the audio drift as the main lesson of this question: a defect can survive every reproducibility check because reproduction only proves that the output is stable, not that it is right. Comparing the pipeline's output on an excerpt with the full-film output, which is how the drift was found, is a cheap cross-check worth building into any similar pipeline [19].
+
+### b) Recommendations 2
+
+*On how accurate the static labels are.*
+
+**Film students and teachers** should trust shot size and framing most (85.6% and 89.2% on ShotBench for the 2B, a little higher for the 4B) and lighting conditions least (58.3%) [12]. On older or black-and-white films, the angle slot cannot say "eye level", so a "low" or "high" label should be checked by eye [27].
+
+**Editors and filmmakers** looking for shots by lighting should not search on the light slot alone: validation overstated the test accuracy of lighting and composition by 16 to 18 points [7], and on *Night of the Living Dead* the lighting-type series is implausibly volatile [7]. The tonal key slot, computed from luminance, is a more stable proxy for dark versus bright shots.
+
+**Film scholars and archivists** should not report proportions of predicted labels on a film (for example "44% low angle") as properties of the film without a labelled sample [48]; switching from the 2B to the 4B moved the daylight share of *Night of the Living Dead* from 66% to 48% [40, 48]. No gold labels were made (the planned 60-shot labelling was cancelled), so such a sample does not yet exist [16]; a labelled sample scored by a sealed step written before the labels exist is the minimum I would want before any such statement [59].
+
+**ML and vision researchers** should note three practices that changed the interpretation of the numbers here: splitting validation by film rather than by image, the grey-image control (81.16% falling to 35.06%), and measuring film overlap between training and test sets (202 of 242 ShotBench films also in ShotQA) [12, 25]. Any comparison with published systems should state the scoring protocol, because letter-logit scoring and the official text parser are different measurements [12]. A larger base model was the only change that helped here; ensembles, extra data, augmentation and a short reinforcement-learning pilot did not [19].
+
+### c) Recommendations 3
+
+*On whether the tool can tell camera movement.*
+
+**Film students and teachers** should read the move slot as a set of candidates. "Static" is reliable as a statement that the camera does not move much (the motion measure separates moving from static shots with an area under the curve of 0.973), but direction words (left or right, up or down) are not yet reliable [57].
+
+**Editors and filmmakers** searching for camera moves should search for the presence of motion and then look, rather than search for a specific direction. Contradictory sets, such as pan-left with pan-right, appear in 42.9% of the rows of *Night of the Living Dead* and should be read as "moving, direction unclear" [32].
+
+**Film scholars and archivists** should not use the move slot for counts such as "the film uses twice as many pans as tilts" until movement is labelled. The atom vocabulary also omits properties scholars care about, such as handheld camera, speed and slow motion.
+
+**ML and vision researchers** should treat the negative result as the main finding: a combination fitted on out-of-fold predictions looked strong in development (82.8%) and did not beat the geometry model on either test set [13]. Geometry features need their inputs conformed to the training frame rate [13]; video-language models should be checked with grey or shuffled frames before their movement accuracy is trusted, since the video model here kept 84.5% of its validation accuracy without informative frames [13].
+
+## 8) Conclusion
+
+This project set out to turn a film into one readable line of tokens per shot, and to find out how far those tokens can be trusted. I built a pipeline that does this with one command on any video file: it detects shots, extracts keyframes, labels static attributes with a fine-tuned vision-language model, labels movement with a geometry model, fills the remaining slots with detectors and rules, and writes one thirteen-slot row per shot. Its stages are cached and bound to their inputs, its key runs reproduced byte for byte, and every change passed a separate verification pass that did not write it.
+
+On the first question, the answer is yes as a process. On *Night of the Living Dead* the pipeline produced 1,077 shots with a hand-checked cut precision of 94%, a complete row for every shot, and identical outputs on every re-run; it ran unchanged on input outside its registry. On the second question, the earlier 2B static model answers 73.2% of ShotBench's static four-option questions correctly, strongest on size and framing and weakest on lighting, and the grey-image control shows that this accuracy depends on the picture; the 4B that replaced it on the film is better on validation (82.49% against 81.16%) and about two points higher on ShotBench in the same scoring, a difference I describe rather than test. On the third question, the geometry movement model reaches 74.6% on ShotBench movement and 62.6% on generated CameraBench questions, while the pre-registered claim that a combined model is better than either part was not supported.
+Under ShotBench's official prompt and parser, the seven-column means of the earlier 2B (73.3%) and of the 4B now used on the film (74.7%) sit above the published ShotVL-3B and GPT-4o numbers by a rule fixed before the runs, a result that carries every caveat of section 6b: published numbers rather than reruns, shared films, repeated looks at the benchmark, no paired test, supervised fine-tuning only against ShotVL-3B's added reinforcement learning, and a checkpoint selected on validation.
+
+Three lessons from the process seem to me as important as the numbers. The first is that sealing and single use change what a result means: because every evaluation was fixed in advance and logged, the negative movement result could not be quietly tuned away, and it is reported as obtained. The second is that reproducibility and correctness are different properties: the audio drift survived byte-identical re-runs and was found only by comparing two different routes to the same answer. The third is that controls matter more than headline accuracy: the grey-image and grey-frame controls told me more about what the two vision-language models were doing than their accuracy did.
+
+What I cannot claim is accuracy on the film itself. The rows are predictions, and switching models changed many of them; movement sets are often contradictory; keyframes often disagree; and the benchmarks share films with the training data and look nothing like a 1968 black-and-white film. I also make no claim of general cinematographic understanding, of performance on unseen films, or of a narrative reading of the visual arc.
+
+The step that would change this is labelling. The development set of about 100 shots would let me tune the heuristic thresholds, and the 300-shot gold set would give the first accuracy figures on a real film [7]. No gold labels were made for this report: the planned 60-shot labelling of *Night of the Living Dead* was cancelled [16], so labels remain the main way to measure accuracy in future work, and the only way to know whether the 4B's different tokens are better ones. Until then, the token rows are a reproducible starting point for looking at a film, not a measurement of it.
+
+
+## A note on the references {.unnumbered .unlisted}
+
+Each reference names its source. Sources that ship with this repository are given by their path; the others are project records (decision records, logs, verification records and per-run result files) that are marked "not included in this repository", because they also refer to material that cannot be published (an owned film, benchmark items and answers, and ShotQA-derived model files). The numbers taken from them are reported in this paper as they were obtained.
+
+## References {.unnumbered .unlisted}
+
+Each number in square brackets in the text refers to the source below; paths are relative to the repository, and sources marked as not included are project records that are not published.
+
+[1] *not included in this repository*. Project decision record: cut threshold 12 and 50-cut hand check
+
+[2] *not included in this repository*. Project plan: token row design, ShotQA
+
+[3] *configs/tokens.yaml*. v1 token slots and vocabularies
+
+[4] *not included in this repository*. Project decision record: token schema
+
+[5] *not included in this repository*. Phase 2 pretrained models and rules
+
+[6] *docs/writeup/figures/figures.md*. Figure captions, inputs and caveats
+
+[7] *not included in this repository*. Project status log: status and findings log (2026-10-15)
+
+[8] *not included in this repository*. Project decision record: phase 6 scope and film files
+
+[9] *not included in this repository*. Phase 3A ShotBench result, film split, audit sample
+
+[10] *not included in this repository*. Project decision record: phase 6 start and release rules
+
+[11] *not included in this repository*. Project decision record: shotBench is test only
+
+[12] *not included in this repository*. Phase 3B ShotBench result, validation and grey-image control
+
+[13] *not included in this repository*. Phase 4 final report: six sealed movement evaluations
+
+[14] *not included in this repository*. ShotBench still-image ledger
+
+[15] *not included in this repository*. Phase 4 test ledger
+
+[16] *not included in this repository*. Project decision record: gold labelling cancelled; no gold labels
+
+[17] *not included in this repository*. Project decision record: ten-film requirement removed
+
+[18] *not included in this repository*. Project decision record: director fingerprint dropped
+
+[19] *not included in this repository*. Project experiment log: experiment log
+
+[20] *not included in this repository*. Verification record of the audio fix, 2026-10-13: verification of the audio alignment fix
+
+[21] *not included in this repository*. Project decision record: sound-grouping and GPU-lock fixes
+
+[22] *not included in this repository*. Sound-grouping re-run
+
+[23] *results/phase6/notld_token_rows_sample.md*. Three real token rows
+
+[24] *not included in this repository*. Near-duplicate audit at pixel level
+
+[25] *not included in this repository*. Film-title overlap of ShotQA and ShotBench
+
+[26] *not included in this repository*. Full-vocabulary scoring method selection
+
+[27] *not included in this repository*. Token interface: angle vocabulary without eye level
+
+[28] *not included in this repository*. Project log, 2026-10-13: movement slot rule (probability at least 0.5, else top atom)
+
+[29] *not included in this repository*. Movement stage re-run, byte-identical outputs
+
+[30] *not included in this repository*. Determinism of the full-vocabulary run
+
+[31] *not included in this repository*. Verification record of the entry point, 2026-10-13: verification of the one-command entry point
+
+[32] *not included in this repository*. Visual arc in twenty windows
+
+[33] *not included in this repository*. "Shots like this"
+
+[34] *not included in this repository*. Demo application specification and public-mode guards
+
+[35] *not included in this repository*. Verification record of the demo, 2026-10-14: verification of the demo application
+
+[36] *not included in this repository*. Power-dynamics transcript attempt (dropped)
+
+[37] *not included in this repository*. Base-model gating benchmark
+
+[38] *results/stepc/selection.md*. Step C selection: 4B against 2B on deduplicated validation
+
+[39] *not included in this repository*. Project decision record: film pipeline default switched to the 4B
+
+[40] *not included in this repository*. Full-vocabulary scoring over the film
+
+[41] *not included in this repository*. Lens strata erratum
+
+[42] *results/phase3/shotbench_published_table2.json*. Published ShotBench Table 2 (arXiv 2506.21356v2), transcribed, with 7-column means; not reruns
+
+[43] *results/p3m_matched/shotbench_letterlogit_4b_c5_v1.json*. Sealed letter-logit ShotBench run of the 4B (VLM-only scores, descriptive)
+
+[44] *results/p3m_matched/shotbench_matched_4b_v1_compare.json*. Matched-protocol (official prompt and parser) ShotBench result of the 4B
+
+[45] *not included in this repository*. Matched-protocol (official prompt and parser) ShotBench result of the 2B
+
+[46] *not included in this repository*. ShotBench paper (arXiv 2506.21356v2): ShotVL training (SFT then GRPO) and the evaluated models
+
+[47] *not included in this repository*. Project decision record: matched-protocol run and wording rule (written before the run)
+
+[48] *results/phase6/notld_writeup_numbers.json*. Film numbers recomputed from the 4B token table
+
+[49] *not included in this repository*. Step B selection: CineScale2 retraining, no gain
+
+[50] *not included in this repository*. Eye-level head: frame-size artefact, not adopted
+
+[51] *not included in this repository*. Step 3 selection: augmentation, image budget, extra steps; no gain
+
+[52] *not included in this repository*. GRPO pilot summary
+
+[53] *not included in this repository*. Style-code feasibility test
+
+[54] *not included in this repository*. Matched protocol definition
+
+[55] *not included in this repository*. Matched protocol on validation
+
+[56] *not included in this repository*. Phase 4 status report: phase 4 evaluator self-check
+
+[57] *not included in this repository*. Movement direction probes
+
+[58] *not included in this repository*. Project decision record: new inputs and the unchecked-threshold warning
+
+[59] *not included in this repository*. Project decision record: this report; sealed scoring of gold labels

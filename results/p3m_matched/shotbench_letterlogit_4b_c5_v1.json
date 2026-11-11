@@ -1,0 +1,201 @@
+{
+ "tag": "letterlogit_4b_c5_v1",
+ "protocol": "p3m-letterlogit-c5-v1",
+ "protocol_sha256": "8681e3bcbc38b688acbfc7e63b928c99823c5691e11476a257ce62a99c4e249d",
+ "identity_sha256": "aba568837c815b16e877bc0f36a4d7435358abe9e1d88c4b7c99eccf0e61ae39",
+ "blend_sha256": "6d528fac7ccfcda8d1aa64e856105ce833668f08ac2c7e809961df974f6b054b",
+ "siglip_identity_sha256": "4420a8b3ddf6812d69a6ab9cb8745c8a64d32f09164d639a8d6977721985d33d",
+ "stats": {
+  "rows_total": 3572,
+  "rows_video_excluded": 464,
+  "per_attribute": {
+   "size": {
+    "rows_in_category": 485,
+    "parsed": 485,
+    "dropped_unparsed": 0,
+    "dropped_roundtrip": 0
+   },
+   "framing": {
+    "rows_in_category": 445,
+    "parsed": 445,
+    "dropped_unparsed": 0,
+    "dropped_roundtrip": 0
+   },
+   "angle": {
+    "rows_in_category": 455,
+    "parsed": 455,
+    "dropped_unparsed": 0,
+    "dropped_roundtrip": 0
+   },
+   "lens": {
+    "rows_in_category": 489,
+    "parsed": 489,
+    "dropped_unparsed": 0,
+    "dropped_roundtrip": 0
+   },
+   "light_type": {
+    "rows_in_category": 405,
+    "parsed": 405,
+    "dropped_unparsed": 0,
+    "dropped_roundtrip": 0
+   },
+   "light_cond": {
+    "rows_in_category": 350,
+    "parsed": 350,
+    "dropped_unparsed": 0,
+    "dropped_roundtrip": 0
+   },
+   "composition": {
+    "rows_in_category": 479,
+    "parsed": 479,
+    "dropped_unparsed": 0,
+    "dropped_roundtrip": 0
+   }
+  },
+  "rows_static_image": 3108,
+  "n_samples": 3108,
+  "unique_image_stems": 3049,
+  "image_files": 3049,
+  "image_names_sharing_a_stem_with_another_extension": 0
+ },
+ "rows": [
+  {
+   "attribute": "size",
+   "n": 485,
+   "correct": 428,
+   "acc_pct": 88.25,
+   "ci95": [
+    85.1,
+    90.8
+   ],
+   "invalid_rate_pct": 0.0,
+   "expected_fallback_acc_pct": 88.25
+  },
+  {
+   "attribute": "framing",
+   "n": 445,
+   "correct": 405,
+   "acc_pct": 91.01,
+   "ci95": [
+    88.0,
+    93.3
+   ],
+   "invalid_rate_pct": 0.0,
+   "expected_fallback_acc_pct": 91.01
+  },
+  {
+   "attribute": "angle",
+   "n": 455,
+   "correct": 366,
+   "acc_pct": 80.44,
+   "ci95": [
+    76.5,
+    83.8
+   ],
+   "invalid_rate_pct": 0.0,
+   "expected_fallback_acc_pct": 80.44
+  },
+  {
+   "attribute": "lens",
+   "n": 489,
+   "correct": 332,
+   "acc_pct": 67.89,
+   "ci95": [
+    63.6,
+    71.9
+   ],
+   "invalid_rate_pct": 0.0,
+   "expected_fallback_acc_pct": 67.89
+  },
+  {
+   "attribute": "light_type",
+   "n": 405,
+   "correct": 284,
+   "acc_pct": 70.12,
+   "ci95": [
+    65.5,
+    74.4
+   ],
+   "invalid_rate_pct": 0.0,
+   "expected_fallback_acc_pct": 70.12
+  },
+  {
+   "attribute": "light_cond",
+   "n": 350,
+   "correct": 213,
+   "acc_pct": 60.86,
+   "ci95": [
+    55.7,
+    65.8
+   ],
+   "invalid_rate_pct": 0.0,
+   "expected_fallback_acc_pct": 60.86
+  },
+  {
+   "attribute": "composition",
+   "n": 479,
+   "correct": 323,
+   "acc_pct": 67.43,
+   "ci95": [
+    63.1,
+    71.5
+   ],
+   "invalid_rate_pct": 0.0,
+   "expected_fallback_acc_pct": 67.43
+  }
+ ],
+ "mean_acc_pct": 75.14,
+ "invalid_rate_pct": 0.0,
+ "mean_expected_fallback_acc_pct": 75.14,
+ "descriptive_c0_vlm_only": {
+  "rows": [
+   {
+    "attribute": "size",
+    "n": 485,
+    "correct": 423,
+    "acc_pct": 87.22
+   },
+   {
+    "attribute": "framing",
+    "n": 445,
+    "correct": 401,
+    "acc_pct": 90.11
+   },
+   {
+    "attribute": "angle",
+    "n": 455,
+    "correct": 371,
+    "acc_pct": 81.54
+   },
+   {
+    "attribute": "lens",
+    "n": 489,
+    "correct": 329,
+    "acc_pct": 67.28
+   },
+   {
+    "attribute": "light_type",
+    "n": 405,
+    "correct": 284,
+    "acc_pct": 70.12
+   },
+   {
+    "attribute": "light_cond",
+    "n": 350,
+    "correct": 213,
+    "acc_pct": 60.86
+   },
+   {
+    "attribute": "composition",
+    "n": 479,
+    "correct": 327,
+    "acc_pct": 68.27
+   }
+  ],
+  "mean_acc_pct": 75.06,
+  "note": "same pass, VLM letter logits alone; descriptive only, never selectable"
+ },
+ "n_fewer_than_4_options": 0,
+ "seconds": 1207.6943283330183,
+ "n": 3108
+}

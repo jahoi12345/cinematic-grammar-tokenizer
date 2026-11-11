@@ -1,0 +1,57 @@
+{
+ "caveat": "descriptive shares of predictions and heuristics; accuracy on this film is unmeasured",
+ "contrast": {
+  "all_seven_agree": {
+   "n": 97,
+   "share": 0.0901
+  },
+  "contradictory_move_sets": {
+   "n": 462,
+   "share": 0.429
+  },
+  "median_len_s": 3.04,
+  "shots": 1077
+ },
+ "film": "night_of_the_living_dead",
+ "generated_by": "scripts/writeup_figures.py --numbers-json",
+ "section6": {
+  "all_seven_agree": {
+   "n": 97,
+   "share": 0.0901
+  },
+  "angle_share": {
+   "aerial": 0.0279,
+   "dutch": 0.1123,
+   "high": 0.3779,
+   "low": 0.4438,
+   "overhead": 0.0381
+  },
+  "four_single_label_agree_share": 0.2479,
+  "keyframe_consistent_share": {
+   "angle": 0.5905,
+   "composition": 0.4178,
+   "framing": 0.5887,
+   "lens": 0.6332,
+   "light_cond": 0.6509,
+   "light_type": 0.6565,
+   "size": 0.5274
+  },
+  "light_type_share": {
+   "artificial": 0.4605,
+   "daylight": 0.4754,
+   "firelight": 0.0344,
+   "moonlight": 0.0288,
+   "overcast": 0.0009
+  },
+  "one_person_framing": {
+   "n_shots": 556,
+   "share_single_insert_ots": 0.9029
+  },
+  "shots": 1077,
+  "size_ecu_to_ms_share": 0.6843
+ },
+ "token_table": {
+  "name": "night_of_the_living_dead_tokens_v1.parquet",
+  "sha256": "ee2a20921147fb1bc1ea4fdf2a50d8f2f47fed43a8a4eca9b1ddf3530990c135"
+ }
+}

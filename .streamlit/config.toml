@@ -1,0 +1,58 @@
+# Demo theme (v3 revamp, docs/design/revamp_plan.md and docs/demo_spec.md section v3). Native Streamlit theming; the few things the theme cannot
+# express (token chips, nav rows, callout shape) live in app/demo/style.py. Light and dark are both defined, so the app follows the viewer's system
+# setting (a single [theme] table with colours would force one custom theme). Fonts come from Google Fonts through the theme's "Name:url" syntax
+# (no package); if they cannot load, the generic families after the comma are used.
+# Contrast (WCAG AA, measured, see docs/demo_spec.md v3): ink on ground 16.6:1 light / 15.9:1 dark; accent text >= 4.9:1 light (#146964) / >= 5.9:1 dark.
+[theme]
+font = "IBM Plex Sans:https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap, sans-serif"
+headingFont = "Newsreader:https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap, serif"
+codeFont = "IBM Plex Mono:https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap, monospace"
+baseFontSize = 15
+headingFontWeights = [600, 600, 600, 600, 600, 600]
+headingFontSizes = ["2.6rem", "2.1rem", "1.35rem", "1.1rem", "1rem", "0.95rem"]
+codeFontSize = "0.8rem"
+metricValueFontSize = "1.9rem"
+metricValueFontWeight = 500
+baseRadius = "6px"
+buttonRadius = "6px"
+showSidebarBorder = true
+showWidgetBorder = true
+chartCategoricalColors = ["#1F8F88", "#C27A1A", "#C4506A", "#4F78C4", "#6F8A2E", "#8E5FA8"]
+
+[theme.light]
+primaryColor = "#146964"
+backgroundColor = "#F7F7F5"
+secondaryBackgroundColor = "#ECEDEA"
+textColor = "#16181B"
+borderColor = "#D9DAD5"
+linkColor = "#146964"
+codeBackgroundColor = "#ECEDEA"
+codeTextColor = "#16181B"
+yellowBackgroundColor = "#F7EFDC"
+yellowTextColor = "#4D3A0A"
+yellowColor = "#9A6B00"
+greenTextColor = "#1D6430"
+
+[theme.light.sidebar]
+backgroundColor = "#EEEFEC"
+secondaryBackgroundColor = "#E3E4E0"
+
+[theme.dark]
+primaryColor = "#3FB5AD"
+backgroundColor = "#0F1113"
+secondaryBackgroundColor = "#191C1F"
+textColor = "#ECEBE7"
+borderColor = "#2C3035"
+linkColor = "#3FB5AD"
+codeBackgroundColor = "#191C1F"
+codeTextColor = "#ECEBE7"
+yellowBackgroundColor = "#2A2312"
+yellowTextColor = "#F1E3BF"
+yellowColor = "#E0B54A"
+
+[theme.dark.sidebar]
+backgroundColor = "#14171A"
+secondaryBackgroundColor = "#1E2226"
+
+[client]
+toolbarMode = "minimal"

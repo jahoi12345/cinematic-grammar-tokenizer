@@ -1,0 +1,19 @@
+# Single source of truth for token slots. Phases 3-6 and the demo import this.
+# Static-attribute vocabularies follow ShotBench/ShotQA term lists (paper Table 8), ordinal ones low->high.
+version: 1
+attributes:
+  size:    {type: ordinal, values: [ECU, CU, MCU, MS, MWS, WS, EWS]}
+  angle:   {type: categorical, values: [low, high, overhead, aerial, dutch]}   # ShotBench has no eye-level class
+  framing: {type: categorical, values: [single, insert, 2-shot, 3-shot, group, establishing, ots]}
+  lens:    {type: ordinal, values: [long, medium, wide, ultra-wide]}
+  light_type: {type: multilabel, values: [daylight, artificial, mixed, firelight, overcast, practical, sunny, moonlight, fluorescent, hmi, tungsten, led]}
+  light_cond: {type: multilabel, values: [side, back, high-contrast, silhouette, edge, under, top, hard, soft, low-contrast]}
+  composition: {type: multilabel, values: [center, balanced, symmetrical, right-heavy, left-heavy, short-side]}
+  move:    {type: categorical, values: [static, push-in, pull-out, boom-up, boom-down, pan-left, pan-right, tilt-up, tilt-down, zoom-in, zoom-out, move-left, move-right, arc, roll, dolly-zoom]}
+  # our own non-ShotBench attributes
+  key:     {type: categorical, values: [low-key, mid-key, high-key]}   # Phase 1 luminance heuristic
+  palette: {type: cluster, k: 32}
+  dof:     {type: ordinal, values: [shallow, medium, deep]}
+  people:  {type: count, max: 4}
+  len:     {type: continuous, unit: seconds}
+  style:   {type: rqvae, levels: 3, codes_per_level: 256}

@@ -1,0 +1,99 @@
+<!doctype html><meta charset=utf-8><title>Gold mini labels</title>
+<style>
+body{background:#111;color:#eee;font:15px system-ui;margin:0;padding:12px}
+.bar{height:6px;background:#333;margin-bottom:8px}.bar div{height:6px;background:#4c8}
+#wrap{display:flex;gap:16px;align-items:flex-start}#left{flex:1 1 60%;min-width:0}#right{flex:1 1 40%;min-width:320px}
+video{width:100%;max-height:52vh;background:#000}#imgs img{width:32.5%;border:1px solid #444;margin-right:.5%}
+.field{border:1px solid #333;border-radius:8px;padding:8px 10px;margin-bottom:10px}.field.active{border-color:#4c8;background:#162019}
+.field h3{margin:0 0 6px;font-size:16px}.opt{display:inline-block;margin:3px 6px 3px 0;padding:4px 10px;border:1px solid #666;border-radius:6px;cursor:pointer;user-select:none}
+.opt.on{background:#2a6;border-color:#4c8;color:#fff}.opt.ct.on{background:#865;border-color:#c96}.opt b{color:#9cf;margin-right:4px}
+.mv .opt{min-width:140px}button{font:inherit;padding:6px 14px;margin-right:6px;background:#246;color:#eee;border:1px solid #48a;border-radius:6px;cursor:pointer}
+small,#help{color:#999}#status{color:#fc6}#mvhelp{color:#bbb;min-height:1.3em}
+</style>
+<div class=bar><div id=prog></div></div>
+<p id=head></p>
+<div id=wrap>
+ <div id=left><video id=v muted playsinline preload=auto></video>
+  <p><button id=replay>Replay (R)</button><button id=pause>Play/Pause (Space)</button><button id=speed>Speed 1x (F)</button> <small id=clip></small></p>
+  <div id=imgs></div></div>
+ <div id=right>
+  <div class=field id=f_size><h3>1. Shot size</h3><div id=o_size></div></div>
+  <div class=field id=f_angle><h3>2. Camera angle</h3><div id=o_angle></div></div>
+  <div class="field mv" id=f_movement><h3>3. Camera movement (pick all that apply)</h3><div id=o_movement></div><p id=mvhelp></p></div>
+  <p><button id=save>Save shot and next (Enter)</button><button id=back>Back (Backspace)</button></p>
+  <p id=status></p>
+  <p id=help>Size: 1-7 · Angle: 1-6 (6 = eye-level) · Movement: letter keys toggle atoms, 0 = static · ? (or /) = can't tell (current field) · Enter = next field / save shot ·
+   Backspace = previous field / previous shot · Space = play/pause · R = replay · F = speed. Each shot autosaves when you press Enter on movement.</p>
+ </div>
+</div>
+<script>
+const MKEY={'static':'0','push-in':'i','pull-out':'k','boom-up':'u','boom-down':'n','pan-left':'a','pan-right':'d','tilt-up':'w','tilt-down':'s',
+ 'zoom-in':'z','zoom-out':'x','move-left':'j','move-right':'l','arc':'c','roll':'o'};
+const ORDER=['size','angle','movement'];
+let S,i=0,fi=0,cur=null,rate=1,raf=null;
+const $=id=>document.getElementById(id), V=$('v');
+function blank(){return {size:undefined,angle:undefined,movement:[],mvCant:false}}
+async function init(){S=await (await fetch('/api/state')).json();
+ i=S.items.findIndex(x=>!(x.id in S.labels)); if(i<0)i=S.items.length; load(); }
+function fromLabel(l){return l?{size:l.size,angle:l.angle,movement:l.movement?[...l.movement]:[],mvCant:l.movement===null}:blank()}
+function load(){cur=i<S.items.length?fromLabel(S.labels[S.items[i].id]):null;fi=0;showClip();render();}
+function showClip(){ if(i>=S.items.length){V.pause();V.removeAttribute('src');$('imgs').innerHTML='';return}
+ const it=S.items[i]; const src='/video?film='+encodeURIComponent(it.film);
+ if(!V.src.endsWith(src))V.src=src;
+ const go=()=>{V.currentTime=it.start_s;V.playbackRate=rate;V.play().catch(()=>{})};
+ if(V.readyState>=1)go(); else V.onloadedmetadata=go;
+ $('imgs').innerHTML=it.imgs.map(p=>`<img src="/img?p=${encodeURIComponent(p)}">`).join('');
+ $('clip').textContent=`shot ${it.shot_id} · ${(it.end_s-it.start_s).toFixed(1)} s · loops`;
+ const nx=S.items[i+1]; if(nx)nx.imgs.forEach(p=>{new Image().src='/img?p='+encodeURIComponent(p)});}
+function check(){ // keep playback inside [start_s, end_s): loop back just before the cut
+ if(S&&i<S.items.length&&V.src&&V.readyState>=1){const it=S.items[i]; if(V.currentTime>=it.end_s-0.05||V.currentTime<it.start_s-0.5){V.currentTime=it.start_s;if(V.paused)V.play().catch(()=>{})}}}
+function watch(){check();raf=requestAnimationFrame(watch);}
+V.addEventListener('timeupdate',check); setInterval(check,40); // rAF stalls in a hidden page; the other two do not
+function opt(field,v,label,on,key,ct){return `<span class="opt${on?' on':''}${ct?' ct':''}" data-f="${field}" data-v="${v}"><b>${key}</b>${label}</span>`}
+function render(){
+ const done=Object.keys(S.labels).length; $('prog').style.width=100*done/S.n_total+'%';
+ if(i>=S.items.length){$('head').textContent=`${done}/${S.n_total} labeled. All done; Backspace goes back to review.`;
+  ORDER.forEach(f=>{$('o_'+f).innerHTML='';$('f_'+f).classList.remove('active')});return}
+ const it=S.items[i];
+ $('head').textContent=`${done}/${S.n_total} labeled · shot ${i+1} of ${S.n_total}`+(it.id in S.labels?' (already saved; Enter re-saves)':'');
+ ORDER.forEach((f,k)=>$('f_'+f).classList.toggle('active',k===fi));
+ for(const f of ['size','angle']){
+  $('o_'+f).innerHTML=S.vocab[f].map((v,k)=>opt(f,v,v,cur[f]===v,k+1)).join('')+opt(f,'?',"can't tell",cur[f]===null,'?',1);}
+ $('o_movement').innerHTML=S.vocab.movement.map(v=>opt('movement',v,v,cur.movement.includes(v),MKEY[v])).join('')+opt('movement','?',"can't tell",cur.mvCant,'?',1);
+ document.querySelectorAll('.mv .opt').forEach(e=>e.onmouseenter=()=>{$('mvhelp').textContent=S.move_help[e.dataset.v]?e.dataset.v+': '+S.move_help[e.dataset.v]:"can't tell: the movement cannot be judged"});}
+function setVal(f,v){ if(f==='movement'){ if(v==='?'){cur.mvCant=!cur.mvCant;cur.movement=[]}
+  else{cur.mvCant=false;const k=cur.movement.indexOf(v);k<0?cur.movement.push(v):cur.movement.splice(k,1)}
+  fi=2;render();return}
+ cur[f]=v==='?'?null:v; fi=Math.max(fi,ORDER.indexOf(f)+1); if(fi>2)fi=2; render();}
+function missing(){const m=[];if(cur.size===undefined)m.push('size');if(cur.angle===undefined)m.push('angle');if(!cur.mvCant&&!cur.movement.length)m.push('movement');return m}
+async function save(){ const m=missing(); if(m.length){$('status').textContent='Missing: '+m.join(', ');fi=ORDER.indexOf(m[0]);render();return}
+ const it=S.items[i]; const body={id:it.id,size:cur.size,angle:cur.angle,movement:cur.mvCant?null:S.vocab.movement.filter(v=>cur.movement.includes(v))};
+ $('status').textContent='saving...';
+ const r=await fetch('/api/label',{method:'POST',body:JSON.stringify(body)});
+ if(!r.ok){$('status').textContent='NOT saved: '+r.status+' '+(await r.text()).slice(0,200);return}
+ S.labels[it.id]={size:body.size,angle:body.angle,movement:body.movement};
+ $('status').textContent=`saved shot ${it.shot_id}`;
+ let nxt=S.items.findIndex((x,k)=>k>i&&!(x.id in S.labels)); if(nxt<0)nxt=S.items.findIndex(x=>!(x.id in S.labels));
+ i=nxt<0?S.items.length:nxt; load();}
+function dirty(){ // unsaved changes on the current shot (A6)
+ if(!cur||i>=S.items.length)return false; const a=fromLabel(S.labels[S.items[i].id]);
+ return a.size!==cur.size||a.angle!==cur.angle||a.mvCant!==cur.mvCant||[...a.movement].sort().join()!==[...cur.movement].sort().join();}
+function back(){ if(fi>0){fi--;render();return}
+ if(i>0){ if(dirty()&&!confirm('Discard the unsaved answers for this shot and go back?'))return; i--;load();fi=0;render()} }
+function replay(){if(i<S.items.length){V.currentTime=S.items[i].start_s;V.play().catch(()=>{})}}
+document.addEventListener('click',e=>{const o=e.target.closest('.opt'); if(o&&cur)setVal(o.dataset.f,o.dataset.v)});
+$('save').onclick=()=>cur&&save(); $('back').onclick=back; $('replay').onclick=replay;
+$('pause').onclick=()=>V.paused?V.play():V.pause();
+$('speed').onclick=()=>{rate=rate===1?0.5:rate===0.5?0.25:1;V.playbackRate=rate;$('speed').textContent=`Speed ${rate}x (F)`};
+document.addEventListener('keydown',e=>{ if(!S||e.metaKey||e.ctrlKey||e.altKey)return; const k=e.key;
+ if(k===' '){e.preventDefault();$('pause').onclick();return}
+ if(k==='r'||k==='R'){replay();return} if(k==='f'||k==='F'){$('speed').onclick();return}
+ if(k==='Backspace'){e.preventDefault();back();return}
+ if(!cur)return;
+ if(k==='Enter'){e.preventDefault(); if(fi<2){fi++;render()}else save();return}
+ const f=ORDER[fi];
+ if(k==='?'||k==='/'){setVal(f,'?');return}
+ if(f==='movement'){const a=Object.keys(MKEY).find(x=>MKEY[x]===k.toLowerCase()); if(a&&S.vocab.movement.includes(a))setVal('movement',a);return}
+ const n=parseInt(k); if(n>=1&&n<=S.vocab[f].length)setVal(f,S.vocab[f][n-1]);});
+init(); watch();
+</script>

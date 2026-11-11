@@ -1,0 +1,16 @@
+{
+ "inputs": {
+  "shots": "585a902311114297db88754da4f6ee38f524ed039a458c17ccd3ef3bc582c294",
+  "p2": "98b6eb4ffd99c837944b02eee4a67d8061cf4e775886b1c38a79a3a5fa77392f",
+  "p3c": "b43c07a0ffa187b3c0016332c6bc3eed243364fd1c8c7c9074bc8a0500a79b34",
+  "config": "ff7666fee3d2ecee07b121d936dfbcaaa01526314868ce295e312bd14faf78ca",
+  "palette_centroids": "8f470add44cd0f1117b5ddb95dd2151a4c75556a14ceacdf5a25d0e7f2068d77",
+  "scores_kf_start": "0aa0b259c812fa3a8ef4eeef64732fe17c04ac76457bb2e949ac96ce7337d8b7",
+  "scores_kf_mid": "62db9326b4c3d585bb360a847d1d12bc7d95e5b3ccbc546f2d43f466fca7651b",
+  "scores_kf_end": "4ff5123905e8ba1870b6cf35147ef32eb6c578f84f46ae766f16fab28b55e877",
+  "movement": "f1d576b95c1256170629fdb833c10baf782eba5b31c28cf63e1747e95da6861b",
+  "code": "f2188350bfb7e6f1a9cc32295601263902e854f45e0de68478e111e0c98f331e"
+ },
+ "rows": 1077,
+ "tokens_version": "v1"
+}

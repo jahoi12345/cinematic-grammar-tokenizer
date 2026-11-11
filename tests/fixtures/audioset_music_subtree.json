@@ -1,0 +1,1878 @@
+{
+ "source_url": "https://raw.githubusercontent.com/audioset/ontology/master/ontology.json",
+ "read_on": "2026-10-15",
+ "read_how": "WebFetch as text (offsets 0 and 99000), transcribed id/name/child_ids/restrictions; names cross-checked exactly against the AST config id2label",
+ "root": {
+  "id": "/m/04rlf",
+  "name": "Music"
+ },
+ "model": "MIT/ast-finetuned-audioset-10-10-0.4593@f826b80d28226b62986cc218e5cec390b1096902 (config.json id2label, 527 labels)",
+ "walk": "breadth-first over child_ids from the root, root included, each node once",
+ "nodes": [
+  {
+   "id": "/m/04rlf",
+   "name": "Music",
+   "child_ids": [
+    "/m/04szw",
+    "/m/0kpv1t",
+    "/t/dd00027",
+    "/t/dd00028",
+    "/t/dd00030"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/04szw",
+   "name": "Musical instrument",
+   "child_ids": [
+    "/m/0fx80y",
+    "/m/05148p4",
+    "/m/0l14md",
+    "/m/05pd6",
+    "/m/01kcd",
+    "/m/0l14_3",
+    "/m/085jw",
+    "/m/03m5k",
+    "/m/0l14jd",
+    "/m/0395lw",
+    "/m/03qjg",
+    "/m/0mkg",
+    "/m/0192l",
+    "/m/02bxd",
+    "/m/0l14l2",
+    "/m/07kc_",
+    "/m/0l14t7",
+    "/m/05229",
+    "/m/01vj9c",
+    "/m/01hgjl"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0kpv1t",
+   "name": "Music genre",
+   "child_ids": [
+    "/m/064t9",
+    "/m/0glt670",
+    "/m/06by7",
+    "/m/06j6l",
+    "/m/0gywn",
+    "/m/06cqb",
+    "/m/01lyv",
+    "/m/02x8m",
+    "/m/02w4v",
+    "/m/06j64v",
+    "/m/03_d0",
+    "/m/026z9",
+    "/m/0ggq0m",
+    "/m/02lkt",
+    "/m/0g293",
+    "/m/0155w",
+    "/m/05fw6t",
+    "/m/02v2lh",
+    "/m/0y4f8",
+    "/m/0164x2",
+    "/m/02mscn",
+    "/m/028sqc",
+    "/m/06rqw",
+    "/m/02p0sh1",
+    "/m/05rwpb"
+   ],
+   "restrictions": [
+    "abstract"
+   ]
+  },
+  {
+   "id": "/t/dd00027",
+   "name": "Musical concepts",
+   "child_ids": [
+    "/m/074ft",
+    "/m/09dsr",
+    "/m/05jcn",
+    "/m/022c7z",
+    "/m/01gp74",
+    "/m/0b128",
+    "/m/021wwz",
+    "/m/0kc2j",
+    "/m/03w6d1"
+   ],
+   "restrictions": [
+    "abstract",
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/t/dd00028",
+   "name": "Music role",
+   "child_ids": [
+    "/m/025td0t",
+    "/m/02cjck",
+    "/m/03r5q_",
+    "/m/0l14gg",
+    "/m/07pkxdp",
+    "/m/01z7dr",
+    "/m/0140xf",
+    "/m/0ggx5q",
+    "/m/04wptg",
+    "/t/dd00029"
+   ],
+   "restrictions": [
+    "abstract"
+   ]
+  },
+  {
+   "id": "/t/dd00030",
+   "name": "Music mood",
+   "child_ids": [
+    "/t/dd00031",
+    "/t/dd00032",
+    "/t/dd00033",
+    "/t/dd00034",
+    "/t/dd00035",
+    "/t/dd00036",
+    "/t/dd00037"
+   ],
+   "restrictions": [
+    "abstract"
+   ]
+  },
+  {
+   "id": "/m/0fx80y",
+   "name": "Plucked string instrument",
+   "child_ids": [
+    "/m/0342h",
+    "/m/018j2",
+    "/m/0jtg0",
+    "/m/04rzd",
+    "/m/01bns_",
+    "/m/07xzm"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/05148p4",
+   "name": "Keyboard (musical)",
+   "child_ids": [
+    "/m/05r5c",
+    "/m/013y1f",
+    "/m/0l14qv",
+    "/m/03q5t"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0l14md",
+   "name": "Percussion",
+   "child_ids": [
+    "/m/02hnl",
+    "/m/026t6",
+    "/m/01qbl",
+    "/m/0239kh",
+    "/m/01sm1g",
+    "/m/07brj",
+    "/m/05r5wn",
+    "/m/0mbct",
+    "/m/016622",
+    "/m/0j45pbj"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/05pd6",
+   "name": "Orchestra",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/01kcd",
+   "name": "Brass instrument",
+   "child_ids": [
+    "/m/0319l",
+    "/m/07gql",
+    "/m/07c6l",
+    "/m/020w2",
+    "/m/0y64j"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0l14_3",
+   "name": "Bowed string instrument",
+   "child_ids": [
+    "/m/02qmj0d",
+    "/m/07y_7",
+    "/m/01xqw",
+    "/m/02fsn"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/085jw",
+   "name": "Wind instrument, woodwind instrument",
+   "child_ids": [
+    "/m/0l14j_",
+    "/m/06ncr",
+    "/m/01wy6",
+    "/m/05kms",
+    "/m/01c3q"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/03m5k",
+   "name": "Harp",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0l14jd",
+   "name": "Choir",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0395lw",
+   "name": "Bell",
+   "child_ids": [
+    "/m/03w41f",
+    "/m/0239kh",
+    "/m/027m70_",
+    "/m/0gy1t2s",
+    "/m/07n_g",
+    "/m/0f8s22",
+    "/m/0150b9"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/03qjg",
+   "name": "Harmonica",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0mkg",
+   "name": "Accordion",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0192l",
+   "name": "Bagpipes",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/02bxd",
+   "name": "Didgeridoo",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0l14l2",
+   "name": "Shofar",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/07kc_",
+   "name": "Theremin",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0l14t7",
+   "name": "Singing bowl",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/05229",
+   "name": "Musical ensemble",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/01vj9c",
+   "name": "Bass (instrument role)",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/01hgjl",
+   "name": "Scratching (performance technique)",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/064t9",
+   "name": "Pop music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0glt670",
+   "name": "Hip hop music",
+   "child_ids": [
+    "/m/04j_h4",
+    "/m/0n8zsc8",
+    "/m/02cz_7"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/06by7",
+   "name": "Rock music",
+   "child_ids": [
+    "/m/03lty",
+    "/m/05r6t",
+    "/m/0dls3",
+    "/m/0dl5d",
+    "/m/07sbbz2",
+    "/m/05w3f"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/06j6l",
+   "name": "Rhythm and blues",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0gywn",
+   "name": "Soul music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/06cqb",
+   "name": "Reggae",
+   "child_ids": [
+    "/m/0190y4"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/01lyv",
+   "name": "Country",
+   "child_ids": [
+    "/m/015y_n",
+    "/m/0gg8l"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/02x8m",
+   "name": "Funk",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/02w4v",
+   "name": "Folk music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/06j64v",
+   "name": "Middle Eastern music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/03_d0",
+   "name": "Jazz",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/026z9",
+   "name": "Disco",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0ggq0m",
+   "name": "Classical music",
+   "child_ids": [
+    "/m/05lls"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/02lkt",
+   "name": "Electronic music",
+   "child_ids": [
+    "/m/03mb9",
+    "/m/07gxw",
+    "/m/07s72n",
+    "/m/029h7y",
+    "/m/0283d",
+    "/m/0m0jc",
+    "/m/08cyft",
+    "/m/0fd3y",
+    "/m/07lnk",
+    "/m/0m0fw",
+    "/m/0bmfpc"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0g293",
+   "name": "Music of Latin America",
+   "child_ids": [
+    "/m/02ccj9",
+    "/m/0ln16",
+    "/m/0kpck",
+    "/m/080nby",
+    "/m/05q7ms",
+    "/m/0326g"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0155w",
+   "name": "Blues",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/05fw6t",
+   "name": "Music for children",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/02v2lh",
+   "name": "New-age music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0y4f8",
+   "name": "Vocal music",
+   "child_ids": [
+    "/m/0z9c",
+    "/m/02bk07",
+    "/m/02cz_7"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0164x2",
+   "name": "Music of Africa",
+   "child_ids": [
+    "/m/0145m",
+    "/m/022dgg"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/02mscn",
+   "name": "Christian music",
+   "child_ids": [
+    "/m/016cjb"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/028sqc",
+   "name": "Music of Asia",
+   "child_ids": [
+    "/m/015vgc",
+    "/m/0dq0md"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/06rqw",
+   "name": "Ska",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/02p0sh1",
+   "name": "Traditional music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/05rwpb",
+   "name": "Independent music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/074ft",
+   "name": "Song",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/09dsr",
+   "name": "Melody",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/05jcn",
+   "name": "Musical note",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/022c7z",
+   "name": "Beat",
+   "child_ids": [
+    "/m/05xp3j"
+   ],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/01gp74",
+   "name": "Chord",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/0b128",
+   "name": "Harmony",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/021wwz",
+   "name": "Bassline",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/0kc2j",
+   "name": "Loop",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/03w6d1",
+   "name": "Drone",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/025td0t",
+   "name": "Background music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/02cjck",
+   "name": "Theme music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/03r5q_",
+   "name": "Jingle (music)",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0l14gg",
+   "name": "Soundtrack music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/07pkxdp",
+   "name": "Lullaby",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/01z7dr",
+   "name": "Video game music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0140xf",
+   "name": "Christmas music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0ggx5q",
+   "name": "Dance music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/04wptg",
+   "name": "Wedding music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/t/dd00029",
+   "name": "Birthday music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/t/dd00031",
+   "name": "Happy music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/t/dd00032",
+   "name": "Funny music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/t/dd00033",
+   "name": "Sad music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/t/dd00034",
+   "name": "Tender music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/t/dd00035",
+   "name": "Exciting music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/t/dd00036",
+   "name": "Angry music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/t/dd00037",
+   "name": "Scary music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0342h",
+   "name": "Guitar",
+   "child_ids": [
+    "/m/02sgy",
+    "/m/018vs",
+    "/m/042v_gx",
+    "/m/06w87",
+    "/m/01glhc",
+    "/m/07s0s5r"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/018j2",
+   "name": "Banjo",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0jtg0",
+   "name": "Sitar",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/04rzd",
+   "name": "Mandolin",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/01bns_",
+   "name": "Zither",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/07xzm",
+   "name": "Ukulele",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/05r5c",
+   "name": "Piano",
+   "child_ids": [
+    "/m/01s0ps"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/013y1f",
+   "name": "Organ",
+   "child_ids": [
+    "/m/03xq_f",
+    "/m/03gvt"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0l14qv",
+   "name": "Synthesizer",
+   "child_ids": [
+    "/m/01v1d8",
+    "/m/0gkd1"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/03q5t",
+   "name": "Harpsichord",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/02hnl",
+   "name": "Drum kit",
+   "child_ids": [
+    "/m/0cfdd"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/026t6",
+   "name": "Drum",
+   "child_ids": [
+    "/m/06rvn",
+    "/m/0bm02",
+    "/m/011k_j",
+    "/m/01p970"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/01qbl",
+   "name": "Cymbal",
+   "child_ids": [
+    "/m/03qtq",
+    "/m/0bm0k"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0239kh",
+   "name": "Cowbell",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/01sm1g",
+   "name": "Wood block",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/07brj",
+   "name": "Tambourine",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/05r5wn",
+   "name": "Rattle (instrument)",
+   "child_ids": [
+    "/m/0xzly"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0mbct",
+   "name": "Gong",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/016622",
+   "name": "Tubular bells",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0j45pbj",
+   "name": "Mallet percussion",
+   "child_ids": [
+    "/m/0dwsp",
+    "/m/0dwtp",
+    "/m/0dwt5",
+    "/m/0l156b"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0319l",
+   "name": "French horn",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/07gql",
+   "name": "Trumpet",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/07c6l",
+   "name": "Trombone",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/020w2",
+   "name": "Cornet",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/0y64j",
+   "name": "Bugle",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/02qmj0d",
+   "name": "String section",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/07y_7",
+   "name": "Violin, fiddle",
+   "child_ids": [
+    "/m/0d8_n"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/01xqw",
+   "name": "Cello",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/02fsn",
+   "name": "Double bass",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0l14j_",
+   "name": "Flute",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/06ncr",
+   "name": "Saxophone",
+   "child_ids": [
+    "/m/02pprs",
+    "/m/03t22m"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/01wy6",
+   "name": "Clarinet",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/05kms",
+   "name": "Oboe",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/01c3q",
+   "name": "Bassoon",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/03w41f",
+   "name": "Church bell",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/027m70_",
+   "name": "Jingle bell",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0gy1t2s",
+   "name": "Bicycle bell",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/07n_g",
+   "name": "Tuning fork",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0f8s22",
+   "name": "Chime",
+   "child_ids": [
+    "/m/026fgl"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0150b9",
+   "name": "Change ringing (campanology)",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/04j_h4",
+   "name": "Grime music",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/0n8zsc8",
+   "name": "Trap music",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/02cz_7",
+   "name": "Beatboxing",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/03lty",
+   "name": "Heavy metal",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/05r6t",
+   "name": "Punk rock",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0dls3",
+   "name": "Grunge",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0dl5d",
+   "name": "Progressive rock",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/07sbbz2",
+   "name": "Rock and roll",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/05w3f",
+   "name": "Psychedelic rock",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0190y4",
+   "name": "Dub",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/015y_n",
+   "name": "Swing music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0gg8l",
+   "name": "Bluegrass",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/05lls",
+   "name": "Opera",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/03mb9",
+   "name": "House music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/07gxw",
+   "name": "Techno",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/07s72n",
+   "name": "Dubstep",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/029h7y",
+   "name": "Electro",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/0283d",
+   "name": "Drum and bass",
+   "child_ids": [
+    "/m/01f9gb"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0m0jc",
+   "name": "Electronica",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/08cyft",
+   "name": "Electronic dance music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0fd3y",
+   "name": "Ambient music",
+   "child_ids": [
+    "/m/052smk"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/07lnk",
+   "name": "Trance music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0m0fw",
+   "name": "Noise music",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/0bmfpc",
+   "name": "UK garage",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/02ccj9",
+   "name": "Cumbia",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/0ln16",
+   "name": "Salsa music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0kpck",
+   "name": "Soca music",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/080nby",
+   "name": "Kuduro",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/05q7ms",
+   "name": "Funk carioca",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/0326g",
+   "name": "Flamenco",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0z9c",
+   "name": "A capella",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/02bk07",
+   "name": "Chant",
+   "child_ids": [
+    "/m/01c194"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0145m",
+   "name": "Afrobeat",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/022dgg",
+   "name": "Kwaito",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/016cjb",
+   "name": "Gospel music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/015vgc",
+   "name": "Carnatic music",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0dq0md",
+   "name": "Music of Bollywood",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/05xp3j",
+   "name": "Drum beat",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/02sgy",
+   "name": "Electric guitar",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/018vs",
+   "name": "Bass guitar",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/042v_gx",
+   "name": "Acoustic guitar",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/06w87",
+   "name": "Steel guitar, slide guitar",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/01glhc",
+   "name": "Tapping (guitar technique)",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/07s0s5r",
+   "name": "Strum",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/01s0ps",
+   "name": "Electric piano",
+   "child_ids": [
+    "/m/025cbm",
+    "/m/0bxl5"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/03xq_f",
+   "name": "Electronic organ",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/03gvt",
+   "name": "Hammond organ",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/01v1d8",
+   "name": "Sampler",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0gkd1",
+   "name": "Mellotron",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/0cfdd",
+   "name": "Drum machine",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/06rvn",
+   "name": "Snare drum",
+   "child_ids": [
+    "/m/03t3fj",
+    "/m/02k_mr"
+   ],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0bm02",
+   "name": "Bass drum",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/011k_j",
+   "name": "Timpani",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/01p970",
+   "name": "Tabla",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/03qtq",
+   "name": "Hi-hat",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0bm0k",
+   "name": "Crash cymbal",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/0xzly",
+   "name": "Maraca",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0dwsp",
+   "name": "Marimba, xylophone",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0dwtp",
+   "name": "Glockenspiel",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0dwt5",
+   "name": "Vibraphone",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0l156b",
+   "name": "Steelpan",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/0d8_n",
+   "name": "Pizzicato",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/02pprs",
+   "name": "Alto saxophone",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/03t22m",
+   "name": "Soprano saxophone",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/026fgl",
+   "name": "Wind chime",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/01f9gb",
+   "name": "Oldschool jungle",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/052smk",
+   "name": "Drone music",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/01c194",
+   "name": "Mantra",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/025cbm",
+   "name": "Clavinet",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/0bxl5",
+   "name": "Rhodes piano",
+   "child_ids": [],
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/03t3fj",
+   "name": "Rimshot",
+   "child_ids": [],
+   "restrictions": []
+  },
+  {
+   "id": "/m/02k_mr",
+   "name": "Drum roll",
+   "child_ids": [],
+   "restrictions": []
+  }
+ ],
+ "walk_count": 189,
+ "in_model": [
+  "Music",
+  "Musical instrument",
+  "Plucked string instrument",
+  "Keyboard (musical)",
+  "Percussion",
+  "Orchestra",
+  "Brass instrument",
+  "Bowed string instrument",
+  "Wind instrument, woodwind instrument",
+  "Harp",
+  "Choir",
+  "Bell",
+  "Harmonica",
+  "Accordion",
+  "Bagpipes",
+  "Didgeridoo",
+  "Shofar",
+  "Theremin",
+  "Singing bowl",
+  "Scratching (performance technique)",
+  "Pop music",
+  "Hip hop music",
+  "Rock music",
+  "Rhythm and blues",
+  "Soul music",
+  "Reggae",
+  "Country",
+  "Funk",
+  "Folk music",
+  "Middle Eastern music",
+  "Jazz",
+  "Disco",
+  "Classical music",
+  "Electronic music",
+  "Music of Latin America",
+  "Blues",
+  "Music for children",
+  "New-age music",
+  "Vocal music",
+  "Music of Africa",
+  "Christian music",
+  "Music of Asia",
+  "Ska",
+  "Traditional music",
+  "Independent music",
+  "Song",
+  "Background music",
+  "Theme music",
+  "Jingle (music)",
+  "Soundtrack music",
+  "Lullaby",
+  "Video game music",
+  "Christmas music",
+  "Dance music",
+  "Wedding music",
+  "Happy music",
+  "Funny music",
+  "Sad music",
+  "Tender music",
+  "Exciting music",
+  "Angry music",
+  "Scary music",
+  "Guitar",
+  "Banjo",
+  "Sitar",
+  "Mandolin",
+  "Zither",
+  "Ukulele",
+  "Piano",
+  "Organ",
+  "Synthesizer",
+  "Harpsichord",
+  "Drum kit",
+  "Drum",
+  "Cymbal",
+  "Cowbell",
+  "Wood block",
+  "Tambourine",
+  "Rattle (instrument)",
+  "Gong",
+  "Tubular bells",
+  "Mallet percussion",
+  "French horn",
+  "Trumpet",
+  "Trombone",
+  "String section",
+  "Violin, fiddle",
+  "Cello",
+  "Double bass",
+  "Flute",
+  "Saxophone",
+  "Clarinet",
+  "Church bell",
+  "Jingle bell",
+  "Bicycle bell",
+  "Tuning fork",
+  "Chime",
+  "Change ringing (campanology)",
+  "Beatboxing",
+  "Heavy metal",
+  "Punk rock",
+  "Grunge",
+  "Progressive rock",
+  "Rock and roll",
+  "Psychedelic rock",
+  "Swing music",
+  "Bluegrass",
+  "Opera",
+  "House music",
+  "Techno",
+  "Dubstep",
+  "Drum and bass",
+  "Electronica",
+  "Electronic dance music",
+  "Ambient music",
+  "Trance music",
+  "Salsa music",
+  "Flamenco",
+  "A capella",
+  "Chant",
+  "Afrobeat",
+  "Gospel music",
+  "Carnatic music",
+  "Music of Bollywood",
+  "Electric guitar",
+  "Bass guitar",
+  "Acoustic guitar",
+  "Steel guitar, slide guitar",
+  "Tapping (guitar technique)",
+  "Strum",
+  "Electric piano",
+  "Electronic organ",
+  "Hammond organ",
+  "Sampler",
+  "Drum machine",
+  "Snare drum",
+  "Bass drum",
+  "Timpani",
+  "Tabla",
+  "Hi-hat",
+  "Maraca",
+  "Marimba, xylophone",
+  "Glockenspiel",
+  "Vibraphone",
+  "Steelpan",
+  "Pizzicato",
+  "Wind chime",
+  "Mantra",
+  "Rimshot",
+  "Drum roll"
+ ],
+ "not_in_model": [
+  {
+   "id": "/m/0kpv1t",
+   "name": "Music genre",
+   "restrictions": [
+    "abstract"
+   ]
+  },
+  {
+   "id": "/t/dd00027",
+   "name": "Musical concepts",
+   "restrictions": [
+    "abstract",
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/t/dd00028",
+   "name": "Music role",
+   "restrictions": [
+    "abstract"
+   ]
+  },
+  {
+   "id": "/t/dd00030",
+   "name": "Music mood",
+   "restrictions": [
+    "abstract"
+   ]
+  },
+  {
+   "id": "/m/05229",
+   "name": "Musical ensemble",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/01vj9c",
+   "name": "Bass (instrument role)",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/09dsr",
+   "name": "Melody",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/05jcn",
+   "name": "Musical note",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/022c7z",
+   "name": "Beat",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/01gp74",
+   "name": "Chord",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/0b128",
+   "name": "Harmony",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/021wwz",
+   "name": "Bassline",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/0kc2j",
+   "name": "Loop",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/03w6d1",
+   "name": "Drone",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/t/dd00029",
+   "name": "Birthday music",
+   "restrictions": []
+  },
+  {
+   "id": "/m/020w2",
+   "name": "Cornet",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/0y64j",
+   "name": "Bugle",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/05kms",
+   "name": "Oboe",
+   "restrictions": []
+  },
+  {
+   "id": "/m/01c3q",
+   "name": "Bassoon",
+   "restrictions": []
+  },
+  {
+   "id": "/m/04j_h4",
+   "name": "Grime music",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/0n8zsc8",
+   "name": "Trap music",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/0190y4",
+   "name": "Dub",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/029h7y",
+   "name": "Electro",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/0m0fw",
+   "name": "Noise music",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/0bmfpc",
+   "name": "UK garage",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/02ccj9",
+   "name": "Cumbia",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/0kpck",
+   "name": "Soca music",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/080nby",
+   "name": "Kuduro",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/05q7ms",
+   "name": "Funk carioca",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/022dgg",
+   "name": "Kwaito",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/05xp3j",
+   "name": "Drum beat",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/0gkd1",
+   "name": "Mellotron",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/0bm0k",
+   "name": "Crash cymbal",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/02pprs",
+   "name": "Alto saxophone",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/03t22m",
+   "name": "Soprano saxophone",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/01f9gb",
+   "name": "Oldschool jungle",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/052smk",
+   "name": "Drone music",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/025cbm",
+   "name": "Clavinet",
+   "restrictions": [
+    "blacklist"
+   ]
+  },
+  {
+   "id": "/m/0bxl5",
+   "name": "Rhodes piano",
+   "restrictions": [
+    "blacklist"
+   ]
+  }
+ ],
+ "in_model_count": 150
+}
