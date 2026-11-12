@@ -1,6 +1,6 @@
 # Cinematic Grammar Tokenizer
 
-**Live demo:** [cinematic-grammar-tokenizer.streamlit.app](https://cinematic-grammar-tokenizer.streamlit.app) &nbsp;·&nbsp; **Report:** [jahoi12345.github.io/cinematic-grammar-tokenizer](https://jahoi12345.github.io/cinematic-grammar-tokenizer/)
+**Live demo:** https://jahoi12345.github.io/cinematic-grammar-tokenizer/app/ &nbsp;·&nbsp; **Report:** https://jahoi12345.github.io/cinematic-grammar-tokenizer/
 
 Film teachers, editors and critics describe shots in a shared vocabulary: close-up or wide shot, low or high angle, hard or soft light,
 a pan or a push-in, a long take or a quick cut. This project turns a whole feature film into that vocabulary automatically, as **one
@@ -91,7 +91,25 @@ film: that needs labels.
 Each stage adds columns to one shot table and is cached by film, configuration hash and model version, so a change re-runs exactly the
 stages that depend on it.
 
-## Run the demo
+## The demo
+
+The live demo is a static site (plain HTML, CSS and JavaScript, no server) published with the report on GitHub Pages:
+https://jahoi12345.github.io/cinematic-grammar-tokenizer/app/. It has a Home page with the whole film as a grammar barcode, a film overview with its charts and visual arc, a shot explorer
+with keyframes and filters on any slot, "shots like this", a comparison page, reports and an about page. Its files are in `app/static/`;
+the data under `app/static/data/` is generated from the bundled token table by `scripts/build_static_app.py` (public-domain films only),
+and `scripts/assemble_pages_site.py` (run by `.github/workflows/pages.yml`) puts the report at the site root and the demo with its
+keyframes from `demo_data/` under `app/`. Charts are drawn with Vega-Lite (vega-embed, pinned versions loaded from cdn.jsdelivr.net).
+
+To rebuild the demo data after a change to the token table or the chart code:
+
+```
+pip install -r requirements.txt
+PYTHONPATH=src python scripts/build_static_app.py --root demo_data
+```
+
+### Run the interactive version locally
+
+The same demo also runs as a Streamlit app on your own machine:
 
 ```
 python3.12 -m venv .venv && . .venv/bin/activate
@@ -100,8 +118,7 @@ streamlit run streamlit_app.py
 ```
 
 `streamlit_app.py` always runs in public mode on the bundled `demo_data/` (the token table and keyframes of *Night of the Living Dead*
-only). The app has a Home page, a film overview, a shot explorer with keyframes and filters on any slot, a side-by-side comparison,
-"shots like this", reports and a CSV download.
+only). Besides the pages above, it offers a CSV download of the filtered rows.
 
 ## Run the pipeline
 

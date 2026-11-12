@@ -234,8 +234,18 @@ def test_real_root_public_pages(monkeypatch, page):
     _, terms = _owned()
     text = re.sub(r"\$\$id-[0-9a-f]+-", "", _texts(run_app(monkeypatch, REAL, True, page)).lower())  # widget id hashes are not page text
     assert [t for t in terms if t.lower() in text] == []
+    # a recorded decision lifted a recorded decision for publication: the public paper (shown on Reports) carries the official-protocol (matched) ShotBench
+    # results with their caveats, so their numbers and the source folder name may appear THERE. Everywhere else they stay banned, and on every
+    # page the internal 2B report file (shotbench_matched_v1) and the internal banner never appear; owned/clip terms are checked above.
+    published = ("p3m_matched", "73.26", "71.73", "74.81", "73.3% [71.7") if page == "Reports" else ()
     for bad in ("p3m_matched", "matched_v1", "73.26", "71.73", "74.81", "73.3% [71.7", "internal until the user releases it"):
+        if bad in published:
+            continue
         assert bad not in text, (page, bad)
+    if page == "Reports":
+        at = run_app(monkeypatch, REAL, True, page)
+        opts = list(at.selectbox(key="rep_sel").options) if [w for w in at.selectbox if w.key == "rep_sel"] else []
+        assert not any(o.startswith(core.PUBLIC_DENY) or o in core.MATCHED_REPORTS for o in opts)
 
 
 @pytest.mark.parametrize("rel", ["DATA/reports/paper_full.html", "Data/reports/paper_full.html", "RESULTS/p3m_matched/shotbench_matched_v1.md"])

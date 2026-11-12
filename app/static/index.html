@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cinematic Grammar Tokenizer</title>
+<meta name="description" content="A film as one readable token row per shot: shot size, angle, light, movement and more, for every shot of Night of the Living Dead (1968).">
+<script>
+  (function () {
+    var t = null;
+    try { t = window.localStorage.getItem("cgt-theme"); } catch (e) { t = null; }
+    if (t !== "light" && t !== "dark") { t = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"; }
+    document.documentElement.setAttribute("data-theme", t);
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap">
+<link rel="stylesheet" href="app.css">
+<script src="https://cdn.jsdelivr.net/npm/vega@6.2.0/build/vega.min.js" integrity="sha256-6mpZNjgdBvkSRmNU4raiDrZsTUHxyp3/HgI23+5u45I=" crossorigin="anonymous" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/vega-lite@6.4.1/build/vega-lite.min.js" integrity="sha256-bVA1/dQptLxvkfN1RCbD9Rbz29jgixBc/CSWvtTr0lQ=" crossorigin="anonymous" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/vega-embed@7.1.0/build/vega-embed.min.js" integrity="sha256-w2JUJwIZ7uWPubHZVN7K2VT7B7/Jq3gMXUQBvURc1Qw=" crossorigin="anonymous" defer></script>
+<script src="app.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="shell">
+  <header class="side">
+    <div class="side-top">
+      <a class="brand-link" href="#/" aria-label="Cinematic Grammar Tokenizer, home">
+        <div class="cgt-brand"><div class="cgt-mark" aria-hidden="true"><i></i><i></i><i></i></div><div><div class="cgt-word">Cinematic Grammar Tokenizer</div><div class="cgt-sub">A film as one token row per shot</div></div></div>
+      </a>
+    </div>
+    <span class="badge">PUBLIC MODE: public-domain films only</span>
+    <nav class="nav" aria-label="Pages">
+      <p class="nav-label">Page</p>
+      <a href="#/" data-route="home">Home</a>
+      <a href="#/films" data-route="films">Films</a>
+      <a href="#/overview" data-route="overview">Film overview</a>
+      <a href="#/explorer" data-route="explorer">Shot explorer</a>
+      <a href="#/compare" data-route="compare">Compare (side by side)</a>
+      <a href="#/reports" data-route="reports">Reports</a>
+      <a href="#/about" data-route="about">About</a>
+    </nav>
+    <div class="side-foot">
+      <button type="button" class="theme-btn" id="theme-btn" aria-label="Switch colour theme"></button>
+      <div class="side-links">
+        <a href="../">Read the paper</a><br>
+        <a href="https://github.com/jahoi12345/cinematic-grammar-tokenizer">Source code</a>
+      </div>
+    </div>
+  </header>
+  <main class="main" id="main" tabindex="-1">
+    <noscript><p>This demo needs JavaScript to draw its pages and charts. The <a href="../">paper</a> reads without it.</p></noscript>
+  </main>
+</div>
+</body>
+</html>

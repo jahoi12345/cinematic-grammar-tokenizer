@@ -1,11 +1,13 @@
-# Publishes the project report (site/: index.html and the PDF) to GitHub Pages.
+# Publishes the GitHub Pages site: the project report at the root (site/index.html and the PDF) and the static demo under app/
+# (app/static/ plus the keyframes it names, copied from demo_data/). The demo's data files are committed (written by
+# scripts/build_static_app.py), so this job only copies files: no package is installed.
 # Repository settings -> Pages -> Build and deployment -> Source: "GitHub Actions".
-name: Publish report
+name: Publish report and demo
 
 on:
   push:
     branches: [main]
-    paths: ["site/**", ".github/workflows/pages.yml"]
+    paths: ["site/**", "app/static/**", "demo_data/**", "scripts/assemble_pages_site.py", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
@@ -26,8 +28,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      - name: Assemble the site (paper at the root, static demo under app/)
+        run: python3 scripts/assemble_pages_site.py --out _site --paper site/index.html --pdf site/paper_public.pdf --app app/static --data-root demo_data
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4

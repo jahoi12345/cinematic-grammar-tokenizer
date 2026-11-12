@@ -1,6 +1,6 @@
-"""Entry point of the hosted demo (Streamlit Community Cloud: main file path `streamlit_app.py`).
+"""Entry point of the interactive demo run locally with Streamlit: `streamlit run streamlit_app.py` (the live demo is the static site in app/static/).
 
-The deployed app is public by construction: before the app is imported, public mode is switched on and the data root is pinned to the
+The app is public by construction: before the app is imported, public mode is switched on and the data root is pinned to the
 bundled `demo_data/` folder, which holds only the public-domain film Night of the Living Dead (1968). Any environment value set on the host
 is overridden here. The app's own guard (app/demo/core.py, `public_mode()`) also fails closed.
 """
